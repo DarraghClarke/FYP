@@ -1,0 +1,14 @@
+version: '3'
+services:
+  cloud:
+    image: "cloud:latest"
+    container_name: cloud
+    depends_on:
+      - edge
+    ports:
+      - "8080:8080"
+  edge:
+    image: "edge:latest"
+    container_name: edge
+    ports:
+      - "8081:8081"
