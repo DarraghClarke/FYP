@@ -1,4 +1,3 @@
-
 package service.cloud;
 
 import org.springframework.boot.SpringApplication;

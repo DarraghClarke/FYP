@@ -4,7 +4,7 @@ services:
     image: "cloud:latest"
     container_name: cloud
     depends_on:
-      - edge
+      - orchestrator
     ports:
       - "8080:8080"
   edge:
@@ -12,3 +12,10 @@ services:
     container_name: edge
     ports:
       - "8081:8081"
+    depends_on:
+      - orchestrator
+  orchestrator:
+    image: "orchestrator:latest"
+    container_name: orchestrator
+    ports:
+      - "8082:8082"

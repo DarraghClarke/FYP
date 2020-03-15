@@ -1,98 +1,99 @@
 package service.cloud;
 
-import org.springframework.http.HttpEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
+import oshi.SystemInfo;
+import service.cloud.transferServices.TransferServer;
+import service.core.*;
 
 import java.io.File;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.URI;
+import java.util.UUID;
 
-@RestController
-public class Cloud {
-    /**
-     * This is the starting point for the application. Here, we must
-     * get a reference to the Broker Service and then invoke the
-     * getQuotations() method on that service.
-     *
-     * Finally, you should print out all quotations returned
-     * by the service.
-     *
-     * @param args
-     */
-
-    //right now assuming only one service per node but that can change xxoxo kissy face
+public class Cloud extends WebSocketClient {
 
     private File service;
-//    public static void main(String[] args) {
-/**        RestTemplate restTemplate = new RestTemplate();
+    private UUID assignedUUID;
+    private Proxy proxyName;
+    SystemInfo nodeSystem = new SystemInfo();
 
-
- for(int i=0; i<clients.length ;i++) {
- HttpEntity<ClientInfo> request = new HttpEntity<>(clients[i]);
-
- restTemplate.postForObject("http://192.168.99.100:8080/applications", request, ClientInfo.class);
- }
-
- ClientApplication[] clientApplications = restTemplate.getForObject("http://192.168.99.100:8080/applications", ClientApplication[].class);
-
- for(ClientApplication clientApplication: clientApplications){
- displayProfile(clientApplication.getClientInfo());
- quotations = clientApplication.getQuotations();
-
- for (Quotation quotation : quotations) {
- displayQuotation(quotation);
- }
- System.out.println("\n");
- }
- **/
-
-//    sendService();
-//    }
-    @RequestMapping(value="/go", method= RequestMethod.POST)
-    public static void sendService(@RequestBody String ok){
-        RestTemplate restTemplate = new RestTemplate();
-
-        System.out.println("tried"+ok);
-
-
-        File service= new File("main/resources/docker.tar");
-        System.out.println(service.getName());
-        HttpEntity<File> request = new HttpEntity<>(service);
-
-        restTemplate.postForObject("http://192.168.99.100:8081/service", request, File.class);
-
-        System.out.println("Sent at all");
+    public Cloud(URI serverUri, File service, Proxy proxyName) {
+        super(serverUri);
+        this.service = service;//service is stored in edge node
+        this.proxyName = proxyName;
 
     }
 
-    @RequestMapping(value="/go", method= RequestMethod.GET)
-    public static String sendService(){
-        RestTemplate restTemplate = new RestTemplate();
-
-
-
-        File service= new File("main/resources/docker.tar");
-        System.out.println(service.getName());
-        HttpEntity<File> request = new HttpEntity<>(service);
-
-        restTemplate.postForObject("http://192.168.99.100:8081/service", request, File.class);
-
-        System.out.println("Sent at all");
-return "ok";
+    public static void main(String[] args) {
     }
 
+    @Override
+    public void onOpen(ServerHandshake serverHandshake) {
 
-    @RequestMapping(value="/Service",method=RequestMethod.GET)
-    public File getService(){
-
-
-        return service;
     }
 
-    @RequestMapping(value="/Service", method= RequestMethod.POST)
-    public void addService(@RequestBody File service){
-        this.service=service;
+    @Override
+    public void onMessage(String message) {
+        RuntimeTypeAdapterFactory<Message> adapter = RuntimeTypeAdapterFactory
+                .of(Message.class, "type")
+                .registerSubtype(NodeInfo.class, Message.MessageTypes.NODE_INFO)
+                .registerSubtype(Service.class, Message.MessageTypes.SERVICE)
+                .registerSubtype(ServiceRequest.class, Message.MessageTypes.SERVICE_REQUEST)
+                .registerSubtype(NodeInfoRequest.class, Message.MessageTypes.NODE_INFO_REQUEST);
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().registerTypeAdapterFactory(adapter).create();
+
+        Message messageObj = gson.fromJson(message, Message.class);
+
+        System.out.println(messageObj.getType());
+        System.out.println(message);
+
+        //this routes inbound messages based on type and then moves them to other methods
+        switch (messageObj.getType()) {
+            case Message.MessageTypes.NODE_INFO_REQUEST:
+                NodeInfoRequest infoRequest = (NodeInfoRequest) messageObj;
+                assignedUUID = infoRequest.getAssignedUUID();
+                gson = new Gson();
+                NodeInfo nodeInfo = new NodeInfo(assignedUUID, nodeSystem, service.getName());
+                System.out.println(service.getName());
+                String jsonStr = gson.toJson(nodeInfo);
+                send(jsonStr);
+                break;
+            case Message.MessageTypes.SERVICE_REQUEST:
+                ServiceRequest serviceRequest = (ServiceRequest) messageObj;
+                gson = new Gson();
+                InetSocketAddress serverAddress = launchTempServer();
+                ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serverAddress.getHostName() + ":" + serverAddress.getPort());
+                System.out.println(serviceResponse.getServiceOwnerAddress());
+                jsonStr = gson.toJson(serviceResponse);
+                System.out.println(jsonStr);
+                send(jsonStr);
+                break;
+        }
+    }
+
+    public InetSocketAddress launchTempServer() {
+        InetSocketAddress serverAddress = new InetSocketAddress(6969);
+        System.out.println(serverAddress.toString());
+        setReuseAddr(true);
+        TransferServer transferServer = new TransferServer(serverAddress, service);
+        transferServer.start();
+
+        return serverAddress;
+    }
+
+    @Override
+    public void onClose(int i, String s, boolean b) {
+
+    }
+
+    @Override
+    public void onError(Exception e) {
+
     }
 }
