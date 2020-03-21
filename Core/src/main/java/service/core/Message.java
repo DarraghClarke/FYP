@@ -25,6 +25,7 @@ public class Message implements Serializable {
         final public static String SERVICE_INFO_REQUEST = "ServiceInfoRequest";
         final public static String SERVICE_RESPONSE = "ServiceResponse";
         final public static String TRANSFER_REQUEST = "TransferRequest";
+        final public static String SERVER_HEARTBEAT_REQUEST = "ServerHeartbeatRequest";
 
     }
 }

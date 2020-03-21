@@ -6,6 +6,8 @@ import com.google.gson.typeadapters.RuntimeTypeAdapterFactory;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import oshi.SystemInfo;
+import oshi.hardware.CentralProcessor;
+import oshi.hardware.HardwareAbstractionLayer;
 import service.cloud.transferServices.TransferServer;
 import service.core.*;
 
@@ -13,7 +15,7 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
-import java.util.UUID;
+import java.util.*;
 
 public class Cloud extends WebSocketClient {
 
@@ -21,12 +23,13 @@ public class Cloud extends WebSocketClient {
     private UUID assignedUUID;
     private Proxy proxyName;
     SystemInfo nodeSystem = new SystemInfo();
+    private Map<Integer,Double> historicalCPUload = new HashMap<>();
 
     public Cloud(URI serverUri, File service, Proxy proxyName) {
         super(serverUri);
         this.service = service;//service is stored in edge node
         this.proxyName = proxyName;
-
+        getCPULoad();
     }
 
     public static void main(String[] args) {
@@ -43,6 +46,7 @@ public class Cloud extends WebSocketClient {
                 .of(Message.class, "type")
                 .registerSubtype(NodeInfo.class, Message.MessageTypes.NODE_INFO)
                 .registerSubtype(Service.class, Message.MessageTypes.SERVICE)
+                .registerSubtype(ServerHeartbeatRequest.class, Message.MessageTypes.SERVER_HEARTBEAT_REQUEST)
                 .registerSubtype(ServiceRequest.class, Message.MessageTypes.SERVICE_REQUEST)
                 .registerSubtype(NodeInfoRequest.class, Message.MessageTypes.NODE_INFO_REQUEST);
 
@@ -58,11 +62,10 @@ public class Cloud extends WebSocketClient {
             case Message.MessageTypes.NODE_INFO_REQUEST:
                 NodeInfoRequest infoRequest = (NodeInfoRequest) messageObj;
                 assignedUUID = infoRequest.getAssignedUUID();
-                gson = new Gson();
-                NodeInfo nodeInfo = new NodeInfo(assignedUUID, nodeSystem, service.getName());
-                System.out.println(service.getName());
-                String jsonStr = gson.toJson(nodeInfo);
-                send(jsonStr);
+                sendHeartbeatResponse();
+                break;
+            case Message.MessageTypes.SERVER_HEARTBEAT_REQUEST:
+                sendHeartbeatResponse();
                 break;
             case Message.MessageTypes.SERVICE_REQUEST:
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
@@ -70,11 +73,36 @@ public class Cloud extends WebSocketClient {
                 InetSocketAddress serverAddress = launchTempServer();
                 ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serverAddress.getHostName() + ":" + serverAddress.getPort());
                 System.out.println(serviceResponse.getServiceOwnerAddress());
-                jsonStr = gson.toJson(serviceResponse);
+                String jsonStr = gson.toJson(serviceResponse);
                 System.out.println(jsonStr);
                 send(jsonStr);
                 break;
         }
+    }
+    public void sendHeartbeatResponse(){
+        Gson gson = new Gson();
+        NodeInfo nodeInfo = new NodeInfo(assignedUUID, null, service.getName());
+        if (!historicalCPUload.isEmpty()){
+            nodeInfo.setCPUload(historicalCPUload);
+        }
+        System.out.println(service.getName());
+        String jsonStr = gson.toJson(nodeInfo);
+        send(jsonStr);
+    }
+
+    public void getCPULoad(){
+        HardwareAbstractionLayer hal = nodeSystem.getHardware();
+        CentralProcessor processor = hal.getProcessor();
+        new Timer().schedule(
+                new TimerTask() {
+                    int secondcounter=0;
+                    @Override
+                    public void run() {
+                        secondcounter++;
+                        historicalCPUload.put(secondcounter,processor.getSystemCpuLoadBetweenTicks() * 100);
+                    }
+                }, 1000, 1000);
+
     }
 
     public InetSocketAddress launchTempServer() {

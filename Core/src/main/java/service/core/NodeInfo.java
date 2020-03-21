@@ -2,27 +2,25 @@ package service.core;
 
 import oshi.SystemInfo;
 import org.java_websocket.WebSocket;
+
+import java.util.Map;
 import java.util.UUID;
 
 public class NodeInfo extends Message{
     UUID systemID;
-    SystemInfo systemInfo;
     WebSocket webSocket;
     String serviceName;
+    Map<Integer,Double> CPUload;
 
     public NodeInfo() {
         super(Message.MessageTypes.NODE_INFO);
     }
 
-    public NodeInfo(UUID systemID, SystemInfo systemInfo, String serviceName) {
+    public NodeInfo(UUID systemID,Map<Integer,Double> CPUload , String serviceName) {
         super(Message.MessageTypes.NODE_INFO);
         this.systemID=systemID;
-        this.systemInfo=systemInfo;
+        this.CPUload=CPUload;
         this.serviceName=serviceName;
-    }
-
-    public SystemInfo getSystemInfo() {
-        return systemInfo;
     }
 
     public WebSocket getWebSocket() {
@@ -40,6 +38,12 @@ public class NodeInfo extends Message{
     public UUID getSystemID() {
         return systemID;
     }
-    //currently assume all nodes have same operating specifications
-    // this may be expanded in future to provide CPU,Ram etc.
+
+    public Map<Integer, Double> getCPUload() {
+        return CPUload;
+    }
+
+    public void setCPUload(Map<Integer, Double> CPUload) {
+        this.CPUload = CPUload;
+    }
 }

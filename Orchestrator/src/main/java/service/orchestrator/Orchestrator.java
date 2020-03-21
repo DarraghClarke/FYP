@@ -9,9 +9,7 @@ import org.java_websocket.server.WebSocketServer;
 import service.core.*;
 
 import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class Orchestrator extends WebSocketServer {
 
@@ -46,30 +44,27 @@ public class Orchestrator extends WebSocketServer {
         }
         connectedNodes.put(UUIDToReturn, null);//no node information yet to add
 
-
         //create a nodeInfoRequest and send it back to the node
         Gson gson = new Gson();
         NodeInfoRequest infoRequest = new NodeInfoRequest(UUIDToReturn);
         String jsonStr = gson.toJson(infoRequest);
         webSocket.send(jsonStr);
-//        new Timer().schedule(
-//                new TimerTask() {
-//
-//                    @Override
-//                    public void run() {
-//
-//                        //todo make this a "while nodes connected
-//                        //create a nodeInfoRequest and send it back to the node
-//                        Gson gson = new Gson();
-//                        NodeInfoRequest infoRequest = new NodeInfoRequest(UUIDToReturn);
-//                        String jsonStr = gson.toJson(infoRequest);
-//                        webSocket.send(jsonStr);
-//
-//                        while(connectedNodes.size()>=2){//as long as we have 2 nodes we can check if its time to swap
-//
-//                        }
-//                    }
-//                }, 0, 20000);
+
+        new Timer().schedule(
+                new TimerTask() {
+
+                    @Override
+                    public void run() {
+
+                        //todo make this a "while nodes connected
+                        //create a ServerHeartbeatRequest and send it back to the node
+                        Gson gson = new Gson();
+                        ServerHeartbeatRequest heartbeat = new ServerHeartbeatRequest(UUIDToReturn);
+                        String jsonStr = gson.toJson(heartbeat);
+                        webSocket.send(jsonStr);
+
+                    }
+                }, 20000, 20000);
     }
 
     @Override
@@ -87,7 +82,6 @@ public class Orchestrator extends WebSocketServer {
                 .registerSubtype(NodeInfoRequest.class, Message.MessageTypes.NODE_INFO_REQUEST);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().registerTypeAdapterFactory(adapter).create();
-
         Message messageObj = gson.fromJson(message, Message.class);
 
         System.out.println(messageObj.getType());
@@ -103,7 +97,7 @@ public class Orchestrator extends WebSocketServer {
             case Message.MessageTypes.SERVICE_REQUEST:
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 String jsonStr = gson.toJson(serviceRequest);
-                WebSocket a = findServiceOwnerAddress(serviceRequest);//todo null proof this
+                WebSocket a = findBestServiceOwnerAddress(serviceRequest);//todo null proof this
                 a.send(jsonStr);
                 break;
             case Message.MessageTypes.SERVICE_RESPONSE:
@@ -116,19 +110,42 @@ public class Orchestrator extends WebSocketServer {
         }
     }
 
-    public WebSocket findServiceOwnerAddress(ServiceRequest serviceRequest) {
+    public WebSocket findBestServiceOwnerAddress(ServiceRequest serviceRequest) {
+        Map<UUID, NodeInfo> allServiceOwnerAddresses =findAllServiceOwnerAddresses(serviceRequest);
+        WebSocket bestNodeSocket=null;
+        double bestNodeCPUScore=101;
+        if (allServiceOwnerAddresses==null){
+        //noone had this service, inform edgenode
+        }
+        else{
+            for (Map.Entry<UUID, NodeInfo> entry : allServiceOwnerAddresses.entrySet()) {
+                Map<Integer,Double> entryCPULoad = entry.getValue().getCPUload();
+                entryCPULoad.get(entryCPULoad.size());//most recent result
+
+                if ( entryCPULoad.get(entryCPULoad.size())<bestNodeCPUScore ) {
+                    bestNodeCPUScore = entryCPULoad.get(entryCPULoad.size());
+                    bestNodeSocket = entry.getValue().getWebSocket();
+                }
+            }
+        }
+        return bestNodeSocket;
+    }
+
+
+
+    public Map<UUID, NodeInfo> findAllServiceOwnerAddresses(ServiceRequest serviceRequest) {
+        Map<UUID, NodeInfo> toReturn = new HashMap<>();
         for (Map.Entry<UUID, NodeInfo> entry : connectedNodes.entrySet()) {
             System.out.println(entry.getKey());
             System.out.println(entry.getValue().getServiceName());
             if (entry.getValue().getServiceName() != null && entry.getValue().getServiceName().equals(serviceRequest.getServiceName())) {
                 System.out.println("here" + entry.getValue().getWebSocket());
-                return entry.getValue().getWebSocket();
+                toReturn.put(entry.getKey(),entry.getValue());
             }
         }
-        return null;
+        return toReturn;
 
     }
-
 
     @Override
     public void onError(WebSocket webSocket, Exception e) {
