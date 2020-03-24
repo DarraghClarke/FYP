@@ -17,11 +17,13 @@ public class Orchestrator extends WebSocketServer {
     UUID firstid;
 
     public Orchestrator(int port) {
-        super(new InetSocketAddress(port));
+        super(new InetSocketAddress("192.168.1.10",port));
         System.out.println(this.getAddress().toString());
     }
 
     public static void main(String[] args) {
+        Orchestrator orchestrator=new Orchestrator(443);
+        orchestrator.run();
         System.out.println("we out here");
     }
 

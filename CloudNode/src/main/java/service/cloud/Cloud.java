@@ -15,6 +15,7 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 public class Cloud extends WebSocketClient {
@@ -25,14 +26,15 @@ public class Cloud extends WebSocketClient {
     SystemInfo nodeSystem = new SystemInfo();
     private Map<Integer,Double> historicalCPUload = new HashMap<>();
 
-    public Cloud(URI serverUri, File service, Proxy proxyName) {
+    public Cloud(URI serverUri, File service) {
         super(serverUri);
         this.service = service;//service is stored in edge node
-        this.proxyName = proxyName;
+        //this.proxyName = proxyName;
+        System.out.println(serverUri+" space   "+service.getAbsolutePath());
         getCPULoad();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws URISyntaxException {
     }
 
     @Override
@@ -101,7 +103,7 @@ public class Cloud extends WebSocketClient {
                         secondcounter++;
                         historicalCPUload.put(secondcounter,processor.getSystemCpuLoadBetweenTicks() * 100);
                     }
-                }, 1000, 1000);
+                }, 0, 1000);
 
     }
 

@@ -8,9 +8,6 @@ import org.java_websocket.handshake.ServerHandshake;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.HardwareAbstractionLayer;
-import oshi.hardware.CentralProcessor.TickType;
-import oshi.util.FormatUtil;
-import oshi.util.Util;
 import service.core.*;
 import service.edge.transferServices.TransferClient;
 
@@ -44,6 +41,8 @@ public class Edge extends WebSocketClient {
         ServiceRequest serviceRequest = new ServiceRequest(assignedUUID,"docker.tar");//atm assumes there is only 1 service and leaves it up to orchestrator to find it
         System.out.println(serviceRequest.getType());
         String jsonStr = gson.toJson(serviceRequest);
+        while(historicalCPUload.isEmpty()) {
+        }
         send(jsonStr);
 
     }
@@ -138,7 +137,7 @@ public class Edge extends WebSocketClient {
                         secondcounter++;
                         historicalCPUload.put(secondcounter,processor.getSystemCpuLoadBetweenTicks() * 100);
                     }
-                }, 1000, 1000);
+                }, 0, 1000);
 
     }
 

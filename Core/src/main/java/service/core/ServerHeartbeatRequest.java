@@ -6,11 +6,11 @@ public class ServerHeartbeatRequest extends Message {
     UUID assignedUUID;
 
     public ServerHeartbeatRequest(){
-        super(MessageTypes.NODE_INFO_REQUEST);
+        super(MessageTypes.SERVER_HEARTBEAT_REQUEST);
     }
 
     public ServerHeartbeatRequest(UUID assignedUUID) {
-        super(MessageTypes.NODE_INFO_REQUEST);
+        super(MessageTypes.SERVER_HEARTBEAT_REQUEST);
         this.assignedUUID=assignedUUID;
     }
 

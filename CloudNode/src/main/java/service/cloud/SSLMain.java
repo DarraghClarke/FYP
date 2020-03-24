@@ -17,7 +17,7 @@ import java.net.Proxy;
 public class SSLMain {
     public static void main( String[] args ) throws Exception {
         Proxy proxy = new Proxy( Proxy.Type.HTTP, new InetSocketAddress( "proxyaddresscloud", 80 )  );
-        Cloud node = new Cloud( new URI( "wss://localhost:443" ) , new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"),proxy);
+        Cloud node = new Cloud( new URI( "wss://localhost:443" ) , new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"));
 
         // load up the key store
         String STORETYPE = "JKS";
