@@ -7,6 +7,7 @@ import picocli.CommandLine.Parameters;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 
 @CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.1")
 public class cmMain implements Runnable{
@@ -28,7 +29,12 @@ public class cmMain implements Runnable{
     @Override
     public void run() {
         if(!secure) {
-            Orchestrator orchestrator = new Orchestrator(port);
+            Orchestrator orchestrator = null;
+            try {
+                orchestrator = new Orchestrator(port);
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
             orchestrator.run();
         }else{
             //do full implementation4

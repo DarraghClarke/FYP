@@ -35,11 +35,13 @@ public class Cloud extends WebSocketClient {
     }
 
     public static void main(String[] args) throws URISyntaxException {
+        Cloud cloud=new Cloud(new URI( "ws://localhost:443" ), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"));
+        cloud.run();
     }
 
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
-
+    System.out.println("connected");
     }
 
     @Override

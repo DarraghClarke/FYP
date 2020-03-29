@@ -75,25 +75,32 @@
     </dependencies>
 
     <properties>
-        <main.class>service.cloud.cmMain</main.class>
+        <main.class>service.cloud.SSLMain</main.class>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
 
 
     <build>
+        <resources>
+        <!-- regular resource processsing for everything except logback.xml -->
+        <resource>
+            <directory>src/main/resources</directory>
+        </resource>
+        </resources>
     <plugins>
         <plugin>
             <artifactId>maven-assembly-plugin</artifactId>
             <configuration>
                 <archive>
                     <manifest>
-                        <mainClass>service.cloud.cmMain</mainClass>
+                        <mainClass>service.cloud.SSLMain</mainClass>
                     </manifest>
                 </archive>
                 <descriptorRefs>
                     <descriptorRef>jar-with-dependencies</descriptorRef>
                 </descriptorRefs>
+
             </configuration>
             <executions>
                 <execution>
@@ -112,7 +119,7 @@
                 <archive>
                     <manifest>
                         <!-- Jar file entry point -->
-                        <mainClass>service.cloud.cmMain</mainClass>
+                        <mainClass>service.cloud.SSLMain</mainClass>
                     </manifest>
                 </archive>
             </configuration>

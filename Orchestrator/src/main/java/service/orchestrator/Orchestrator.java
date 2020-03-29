@@ -8,7 +8,9 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 import service.core.*;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 public class Orchestrator extends WebSocketServer {
@@ -16,15 +18,15 @@ public class Orchestrator extends WebSocketServer {
     private Map<UUID, NodeInfo> connectedNodes = new HashMap<>();
     UUID firstid;
 
-    public Orchestrator(int port) {
-        super(new InetSocketAddress("192.168.1.10",port));
+    public Orchestrator(int port) throws UnknownHostException {
+        super(new InetSocketAddress(port));
+        System.out.println(InetAddress.getLocalHost().getHostAddress().trim());
         System.out.println(this.getAddress().toString());
     }
-
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnknownHostException {
         Orchestrator orchestrator=new Orchestrator(443);
         orchestrator.run();
-        System.out.println("we out here");
+        System.out.println("not encrypted version");
     }
 
     /**
