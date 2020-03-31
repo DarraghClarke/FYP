@@ -52,6 +52,11 @@
             <artifactId>picocli</artifactId>
             <version>4.2.0</version>
         </dependency>
+        <dependency>
+            <groupId>clarke.fyp</groupId>
+            <artifactId>core</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <properties>
@@ -63,7 +68,6 @@
 
     <build>
         <resources>
-            <!-- regular resource processsing for everything except logback.xml -->
             <resource>
                 <directory>src/main/resources</directory>
             </resource>

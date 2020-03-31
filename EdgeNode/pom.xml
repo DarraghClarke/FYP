@@ -5,7 +5,7 @@
 
     <groupId>clarke.fyp</groupId>
     <artifactId>edge</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -82,13 +82,18 @@
 
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>service.edge.cmMain</mainClass>
+                            <mainClass>service.edge.SSLMain</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -112,7 +117,7 @@
                     <archive>
                         <manifest>
                             <!-- Jar file entry point -->
-                            <mainClass>service.edge.cmMain</mainClass>
+                            <mainClass>service.edge.SSLMain</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

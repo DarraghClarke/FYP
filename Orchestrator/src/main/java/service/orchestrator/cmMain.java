@@ -37,7 +37,12 @@ public class cmMain implements Runnable{
             }
             orchestrator.run();
         }else{
-            //do full implementation4
+            try {
+                new SSLMain(port);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         }
     }
 
