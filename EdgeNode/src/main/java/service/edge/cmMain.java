@@ -9,9 +9,9 @@ import java.net.URISyntaxException;
 @CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.1")
 public class cmMain implements Runnable{
 
-//    @Option(names = { "-v", "--verbose" },
-//            description = "Verbose mode. Helpful for troubleshooting.")
-//    private boolean[] verbose = new boolean[0];
+    @Option(names = { "-b", "--badagent" },
+            description = "flags node as untrustworthy")
+    private boolean badAgent;
 
     @Option(names = { "-s", "--secure" },
             description = "Secure mode, only engages with orchestrators using SSL")
@@ -29,11 +29,11 @@ public class cmMain implements Runnable{
     @Override
     public void run() {
         if(!secure) {
-            Edge edge = new Edge(address);
+            Edge edge = new Edge(address,!badAgent);
             edge.run();
         }else{
             try {
-                new SSLMain(address);
+                new SSLMain(address,!badAgent);
 
             } catch (Exception e) {
                 e.printStackTrace();

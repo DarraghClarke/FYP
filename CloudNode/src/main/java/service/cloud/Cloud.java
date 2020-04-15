@@ -7,6 +7,7 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
+import oshi.hardware.GlobalMemory;
 import oshi.hardware.HardwareAbstractionLayer;
 import service.cloud.transferServices.TransferServer;
 import service.core.*;
@@ -24,7 +25,11 @@ public class Cloud extends WebSocketClient {
     private UUID assignedUUID;
     private Proxy proxyName;
     SystemInfo nodeSystem = new SystemInfo();
+    HardwareAbstractionLayer hal = nodeSystem.getHardware();
+    CentralProcessor processor = hal.getProcessor();
+    GlobalMemory memory= hal.getMemory();
     private Map<Integer,Double> historicalCPUload = new HashMap<>();
+    private Map<Integer,Double> historicalRamload = new HashMap<>();
 
     public Cloud(URI serverUri, File service) {
         super(serverUri);
@@ -32,6 +37,7 @@ public class Cloud extends WebSocketClient {
         //this.proxyName = proxyName;
         System.out.println(serverUri+" space   "+service.getAbsolutePath());
         getCPULoad();
+        getRamLoad();
     }
 
     public static void main(String[] args) throws URISyntaxException {
@@ -89,14 +95,15 @@ public class Cloud extends WebSocketClient {
         if (!historicalCPUload.isEmpty()){
             nodeInfo.setCPUload(historicalCPUload);
         }
+        if(!historicalRamload.isEmpty()){
+            nodeInfo.setRamLoad(historicalRamload);
+        }
         System.out.println(service.getName());
         String jsonStr = gson.toJson(nodeInfo);
         send(jsonStr);
     }
 
     public void getCPULoad(){
-        HardwareAbstractionLayer hal = nodeSystem.getHardware();
-        CentralProcessor processor = hal.getProcessor();
         new Timer().schedule(
                 new TimerTask() {
                     int secondcounter=0;
@@ -106,8 +113,20 @@ public class Cloud extends WebSocketClient {
                         historicalCPUload.put(secondcounter,processor.getSystemCpuLoadBetweenTicks() * 100);
                     }
                 }, 0, 1000);
-
     }
+
+    public void getRamLoad(){
+        new Timer().schedule(
+                new TimerTask() {
+                    int secondcounter=0;
+                    @Override
+                    public void run() {
+                        secondcounter++;
+                        historicalRamload.put(secondcounter, (double) ((memory.getAvailable() / memory.getTotal()) * 100));
+                    }
+                }, 0, 1000);
+    }
+
 
     public InetSocketAddress launchTempServer() {
         InetSocketAddress serverAddress = new InetSocketAddress(6969);

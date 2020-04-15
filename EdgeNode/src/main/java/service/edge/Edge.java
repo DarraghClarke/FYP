@@ -7,6 +7,7 @@ import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
+import oshi.hardware.GlobalMemory;
 import oshi.hardware.HardwareAbstractionLayer;
 import service.core.*;
 import service.edge.transferServices.TransferClient;
@@ -20,31 +21,34 @@ public class Edge extends WebSocketClient {
     SystemInfo nodeSystem = new SystemInfo();
     HardwareAbstractionLayer hal = nodeSystem.getHardware();
     CentralProcessor processor = hal.getProcessor();
+    GlobalMemory memory= hal.getMemory();
     DockerController dockerController;
     private File service;
     private UUID assignedUUID;
-    private Map<Integer,Double> historicalCPUload = new HashMap<>();;
+    private Map<Integer,Double> historicalCPUload = new HashMap<>();
+    private Map<Integer,Double> historicalRamload = new HashMap<>();
 
-    public Edge(URI serverUri){//, File service) {
+    public Edge(URI serverUri,boolean trustWorthy){//, File service) {
         super(serverUri);
         dockerController=new DockerController();
         //this.service = service;//service is stored in edge node
     }
 
-    public static void main(String[] args) {
-
+    public static void main(String[] args) throws URISyntaxException {
+        Edge edge=new Edge(new URI( "ws://localhost:443" ),false);
+        edge.run();
     }
 
     public void serviceRequestor() {
         Gson gson = new Gson();
 
         ServiceRequest serviceRequest = new ServiceRequest(assignedUUID,"docker.tar");//atm assumes there is only 1 service and leaves it up to orchestrator to find it
-        System.out.println(serviceRequest.getType());
         String jsonStr = gson.toJson(serviceRequest);
-        while(historicalCPUload.isEmpty()) {
+        while(historicalCPUload.size()<5 &&historicalRamload.size()<5) {
+            System.out.println(historicalCPUload.size());
         }
         send(jsonStr);
-
+        System.out.println(serviceRequest.getType());
     }
 
     @Override
@@ -52,6 +56,7 @@ public class Edge extends WebSocketClient {
         System.out.println("connected to orchestrator");
         System.out.println(Edge.this.getLocalSocketAddress());//this is the local address in theory
         getCPULoad();
+        getRamLoad();
     }
 
     @Override
@@ -111,6 +116,9 @@ public class Edge extends WebSocketClient {
         if (!historicalCPUload.isEmpty()){
             nodeInfo.setCPUload(historicalCPUload);
         }
+        if(!historicalRamload.isEmpty()){
+            nodeInfo.setRamLoad(historicalRamload);
+        }
         String jsonStr = gson.toJson(nodeInfo);
         send(jsonStr);
     }
@@ -139,6 +147,18 @@ public class Edge extends WebSocketClient {
                     }
                 }, 0, 1000);
 
+    }
+
+    public void getRamLoad(){
+        new Timer().schedule(
+                new TimerTask() {
+                    int secondcounter=0;
+                    @Override
+                    public void run() {
+                        secondcounter++;
+                        historicalRamload.put(secondcounter, (double) ((memory.getAvailable() / memory.getTotal()) * 100));
+                    }
+                }, 0, 1000);
     }
 
 

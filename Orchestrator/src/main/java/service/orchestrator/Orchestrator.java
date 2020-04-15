@@ -23,8 +23,9 @@ public class Orchestrator extends WebSocketServer {
         System.out.println(InetAddress.getLocalHost().getHostAddress().trim());
         System.out.println(this.getAddress().toString());
     }
+
     public static void main(String[] args) throws UnknownHostException {
-        Orchestrator orchestrator=new Orchestrator(443);
+        Orchestrator orchestrator = new Orchestrator(443);
         orchestrator.run();
         System.out.println("not encrypted version");
     }
@@ -101,6 +102,7 @@ public class Orchestrator extends WebSocketServer {
             case Message.MessageTypes.SERVICE_REQUEST:
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 String jsonStr = gson.toJson(serviceRequest);
+                System.out.println("ADDED THIS " + serviceRequest.toString());
                 WebSocket a = findBestServiceOwnerAddress(serviceRequest);//todo null proof this
                 a.send(jsonStr);
                 break;
@@ -115,19 +117,22 @@ public class Orchestrator extends WebSocketServer {
     }
 
     public WebSocket findBestServiceOwnerAddress(ServiceRequest serviceRequest) {
-        Map<UUID, NodeInfo> allServiceOwnerAddresses =findAllServiceOwnerAddresses(serviceRequest);
-        WebSocket bestNodeSocket=null;
-        double bestNodeCPUScore=101;
-        if (allServiceOwnerAddresses==null){
-        //noone had this service, inform edgenode
+        Map<UUID, NodeInfo> allServiceOwnerAddresses = findAllServiceOwnerAddresses(serviceRequest);
+        WebSocket bestNodeSocket = null;
+        double bestNodeScore = 200;
+        if (allServiceOwnerAddresses == null) {
+            //noone had this service, inform edgenode
         }
-        else{
+        //else if(allServiceOwnerAddresses.size()==1){ //case wheres there only one entry
+        //    bestNodeSocket=allServiceOwnerAddresses.;
+        //}
+        else {
             for (Map.Entry<UUID, NodeInfo> entry : allServiceOwnerAddresses.entrySet()) {
-                Map<Integer,Double> entryCPULoad = entry.getValue().getCPUload();
-                entryCPULoad.get(entryCPULoad.size());//most recent result
-
-                if ( entryCPULoad.get(entryCPULoad.size())<bestNodeCPUScore ) {
-                    bestNodeCPUScore = entryCPULoad.get(entryCPULoad.size());
+                //Map<Integer, Double> entryCPULoad = entry.getValue().getCPUload();
+                double currentNodeCPUScore = calculateRecentCPULoad(entry.getValue().getCPUload(),entry.getValue().getRollingCPUScore());
+                double currentNodeRamScore = calculateRecentRamLoad(entry.getValue().getRamLoad(),entry.getValue().getRollinhRamScore());
+                if (currentNodeCPUScore+currentNodeRamScore < bestNodeScore && entry.getValue().isTrustyworthy()) {
+                    bestNodeScore = currentNodeCPUScore;
                     bestNodeSocket = entry.getValue().getWebSocket();
                 }
             }
@@ -135,6 +140,26 @@ public class Orchestrator extends WebSocketServer {
         return bestNodeSocket;
     }
 
+    public double calculateRecentCPULoad(Map<Integer, Double> entryCPULoad,double rollingScore) {
+        double runningTotal = -1;
+        if (entryCPULoad.size() >= 5) {
+            for (int i = entryCPULoad.size() - 1; i > entryCPULoad.size() - 5; i--) {
+                runningTotal = +entryCPULoad.get(i);
+            }
+        }
+
+        return (0.2*rollingScore)+(0.8*(runningTotal / 5));
+    }
+
+    public double calculateRecentRamLoad(Map<Integer, Double> entryRamLoad,double rollingScore) {
+        double runningTotal=-1;
+        if (entryRamLoad.size() >= 5) {
+            for (int i = entryRamLoad.size() - 1; i > entryRamLoad.size() - 5; i--) {
+                runningTotal = + entryRamLoad.get(i);
+            }
+        }
+        return (0.2*rollingScore)+(0.8*(runningTotal / 5));
+    }
 
 
     public Map<UUID, NodeInfo> findAllServiceOwnerAddresses(ServiceRequest serviceRequest) {
@@ -144,7 +169,7 @@ public class Orchestrator extends WebSocketServer {
             System.out.println(entry.getValue().getServiceName());
             if (entry.getValue().getServiceName() != null && entry.getValue().getServiceName().equals(serviceRequest.getServiceName())) {
                 System.out.println("here" + entry.getValue().getWebSocket());
-                toReturn.put(entry.getKey(),entry.getValue());
+                toReturn.put(entry.getKey(), entry.getValue());
             }
         }
         return toReturn;

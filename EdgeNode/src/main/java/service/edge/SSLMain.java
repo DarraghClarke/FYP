@@ -15,8 +15,8 @@ import java.security.KeyStore;
 //based on TooTallNate example https://github.com/TooTallNate/Java-WebSocket/blob/master/src/main/example/SSLClientExample.java
 public class SSLMain {
 
-    SSLMain(URI address) throws Exception{
-        Edge node = new Edge(address);
+    SSLMain(URI address,boolean flag) throws Exception{
+        Edge node = new Edge(address,flag);
 
         // load up the key store
         String STORETYPE = "JKS";
