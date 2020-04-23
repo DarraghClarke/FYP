@@ -1,5 +1,7 @@
 package service.cloud;
 
+import org.apache.tomcat.jni.SSL;
+
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -52,19 +54,6 @@ public class SSLMain {
     }
 
     public static void main( String[] args ) throws Exception {
-        File targetFile;
-//        if(args.length == 0) {
-//            InputStream initialStream = SSLMain.class.getResourceAsStream("/resources/docker.tar");
-//            byte[] buffer = new byte[initialStream.available()];
-//            initialStream.read(buffer);
-//
-//            targetFile = new File("/resources/targetFile.tmp");
-//            OutputStream outStream = new FileOutputStream(targetFile);
-//            outStream.write(buffer);
-//        } else {
-            targetFile = new File(args[0]);
-       // }
-
-        //SSLMain sslMain = new SSLMain(targetFile);
+        SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"));
     }
 }

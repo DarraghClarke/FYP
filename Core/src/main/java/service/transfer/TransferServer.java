@@ -1,10 +1,13 @@
-package service.cloud.transferServices;
+package service.transfer;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 
 public class TransferServer extends WebSocketServer {

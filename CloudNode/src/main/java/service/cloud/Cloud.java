@@ -9,14 +9,12 @@ import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
 import oshi.hardware.HardwareAbstractionLayer;
-import service.cloud.transferServices.TransferServer;
+import service.host.*;
+import service.transfer.*;
 import service.core.*;
 
 import java.io.File;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.*;
 import java.util.*;
 
 public class Cloud extends WebSocketClient {
@@ -27,27 +25,29 @@ public class Cloud extends WebSocketClient {
     SystemInfo nodeSystem = new SystemInfo();
     HardwareAbstractionLayer hal = nodeSystem.getHardware();
     CentralProcessor processor = hal.getProcessor();
-    GlobalMemory memory= hal.getMemory();
-    private Map<Integer,Double> historicalCPUload = new HashMap<>();
-    private Map<Integer,Double> historicalRamload = new HashMap<>();
+    GlobalMemory memory = hal.getMemory();
+    DockerController dockerController;
+    private Map<Integer, Double> historicalCPUload = new HashMap<>();
+    private Map<Integer, Double> historicalRamload = new HashMap<>();
 
     public Cloud(URI serverUri, File service) {
         super(serverUri);
         this.service = service;//service is stored in edge node
         //this.proxyName = proxyName;
-        System.out.println(serverUri+" space   "+service.getAbsolutePath());
+        dockerController = new DockerController();
+        System.out.println(serverUri + " space   " + service.getAbsolutePath());
         getCPULoad();
         getRamLoad();
     }
 
     public static void main(String[] args) throws URISyntaxException {
-        Cloud cloud=new Cloud(new URI( "ws://localhost:443" ), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"));
+        Cloud cloud = new Cloud(new URI("ws://localhost:443"), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"));
         cloud.run();
     }
 
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
-    System.out.println("connected");
+        System.out.println("connected");
     }
 
     @Override
@@ -58,6 +58,7 @@ public class Cloud extends WebSocketClient {
                 .registerSubtype(Service.class, Message.MessageTypes.SERVICE)
                 .registerSubtype(ServerHeartbeatRequest.class, Message.MessageTypes.SERVER_HEARTBEAT_REQUEST)
                 .registerSubtype(ServiceRequest.class, Message.MessageTypes.SERVICE_REQUEST)
+                .registerSubtype(ServiceResponse.class, Message.MessageTypes.SERVICE_RESPONSE)
                 .registerSubtype(NodeInfoRequest.class, Message.MessageTypes.NODE_INFO_REQUEST);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().registerTypeAdapterFactory(adapter).create();
@@ -69,14 +70,17 @@ public class Cloud extends WebSocketClient {
 
         //this routes inbound messages based on type and then moves them to other methods
         switch (messageObj.getType()) {
+            //A request for the nodes status when it initially joins
             case Message.MessageTypes.NODE_INFO_REQUEST:
                 NodeInfoRequest infoRequest = (NodeInfoRequest) messageObj;
                 assignedUUID = infoRequest.getAssignedUUID();
                 sendHeartbeatResponse();
                 break;
+            //heartbeat request
             case Message.MessageTypes.SERVER_HEARTBEAT_REQUEST:
                 sendHeartbeatResponse();
                 break;
+            //request for the service on the node
             case Message.MessageTypes.SERVICE_REQUEST:
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 gson = new Gson();
@@ -87,15 +91,29 @@ public class Cloud extends WebSocketClient {
                 System.out.println(jsonStr);
                 send(jsonStr);
                 break;
+            case Message.MessageTypes.SERVICE_RESPONSE:
+                //this gives the proxy address we want
+                ServiceResponse response = (ServiceResponse) messageObj;
+                System.out.println(response);
+                System.out.println(response.getServiceOwnerAddress());
+
+                try {
+                    launchTransferClient(response.getServiceOwnerAddress());
+
+                } catch (URISyntaxException | UnknownHostException e) {
+                    e.printStackTrace();
+                }
+                break;
         }
     }
-    public void sendHeartbeatResponse(){
+
+    public void sendHeartbeatResponse() {
         Gson gson = new Gson();
         NodeInfo nodeInfo = new NodeInfo(assignedUUID, null, service.getName());
-        if (!historicalCPUload.isEmpty()){
+        if (!historicalCPUload.isEmpty()) {
             nodeInfo.setCPUload(historicalCPUload);
         }
-        if(!historicalRamload.isEmpty()){
+        if (!historicalRamload.isEmpty()) {
             nodeInfo.setRamLoad(historicalRamload);
         }
         System.out.println(service.getName());
@@ -103,22 +121,38 @@ public class Cloud extends WebSocketClient {
         send(jsonStr);
     }
 
-    public void getCPULoad(){
+    public void launchTransferClient(String serverAddress) throws URISyntaxException, UnknownHostException {
+        System.out.println("GOT HERE");
+        System.out.println(serverAddress);
+        TransferClient transferClient = new TransferClient(new URI("ws://localhost:6969"), dockerController);
+        transferClient.connect();
+        while (transferClient.dockerControllerReady() == null) {
+        }
+        DockerController dockerController = transferClient.dockerControllerReady();
+        transferClient.close();
+        ServiceHost serviceHost = new ServiceHost(6969, dockerController);
+        serviceHost.run();
+    }
+
+
+    public void getCPULoad() {
         new Timer().schedule(
                 new TimerTask() {
-                    int secondcounter=0;
+                    int secondcounter = 0;
+
                     @Override
                     public void run() {
                         secondcounter++;
-                        historicalCPUload.put(secondcounter,processor.getSystemCpuLoadBetweenTicks() * 100);
+                        historicalCPUload.put(secondcounter, processor.getSystemCpuLoadBetweenTicks() * 100);
                     }
                 }, 0, 1000);
     }
 
-    public void getRamLoad(){
+    public void getRamLoad() {
         new Timer().schedule(
                 new TimerTask() {
-                    int secondcounter=0;
+                    int secondcounter = 0;
+
                     @Override
                     public void run() {
                         secondcounter++;

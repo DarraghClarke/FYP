@@ -56,7 +56,8 @@ public class SSLMain {
             }
         }
     }
-    public static void main( String[] args ) throws Exception {
 
+    public static void main( String[] args ) throws Exception {
+        SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), false);
     }
 }
