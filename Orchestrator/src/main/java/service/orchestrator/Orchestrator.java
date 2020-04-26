@@ -10,6 +10,7 @@ import service.core.*;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.*;
 
@@ -103,7 +104,7 @@ public class Orchestrator extends WebSocketServer {
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 String jsonStr = gson.toJson(serviceRequest);
                 System.out.println("ADDED THIS " + serviceRequest.toString());
-                WebSocket a = findBestServiceOwnerAddress(serviceRequest);//todo null proof this
+                WebSocket a = findBestServiceOwnerAddress(serviceRequest).getWebSocket();//todo null proof this
                 a.send(jsonStr);
                 break;
             case Message.MessageTypes.SERVICE_RESPONSE:
@@ -113,12 +114,23 @@ public class Orchestrator extends WebSocketServer {
                 jsonStr = gson.toJson(response);
                 returnSocket.send(jsonStr);
                 break;
+            case Message.MessageTypes.HOST_REQUEST:
+                HostRequest hostRequest = (HostRequest) messageObj;
+                long startTime = System.nanoTime();
+                ServiceRequest requestFromUser = new ServiceRequest(hostRequest.getRequestorID(),hostRequest.getRequestedServiceName());
+                NodeInfo returnedNode = findBestServiceOwnerAddress(requestFromUser);
+                URI returnURI = returnedNode.getServiceHostAddress();
+
+                jsonStr = gson.toJson(new HostResponse(hostRequest.getRequestorID(),returnURI));
+                webSocket.send(jsonStr);//this sends to requestor address
+                long endTime = System.nanoTime();
+                break;
         }
     }
 
-    public WebSocket findBestServiceOwnerAddress(ServiceRequest serviceRequest) {
+    public NodeInfo findBestServiceOwnerAddress(ServiceRequest serviceRequest) {
         Map<UUID, NodeInfo> allServiceOwnerAddresses = findAllServiceOwnerAddresses(serviceRequest);
-        WebSocket bestNodeSocket = null;
+        NodeInfo bestNode = null;
         double bestNodeScore = 200;
         if (allServiceOwnerAddresses == null) {
             //noone had this service, inform edgenode
@@ -130,14 +142,14 @@ public class Orchestrator extends WebSocketServer {
             for (Map.Entry<UUID, NodeInfo> entry : allServiceOwnerAddresses.entrySet()) {
                 //Map<Integer, Double> entryCPULoad = entry.getValue().getCPUload();
                 double currentNodeCPUScore = calculateRecentCPULoad(entry.getValue().getCPUload(),entry.getValue().getRollingCPUScore());
-                double currentNodeRamScore = calculateRecentRamLoad(entry.getValue().getRamLoad(),entry.getValue().getRollinhRamScore());
+                double currentNodeRamScore = calculateRecentRamLoad(entry.getValue().getRamLoad(),entry.getValue().getRollingRamScore());
                 if (currentNodeCPUScore+currentNodeRamScore < bestNodeScore && entry.getValue().isTrustyworthy()) {
                     bestNodeScore = currentNodeCPUScore;
-                    bestNodeSocket = entry.getValue().getWebSocket();
+                    bestNode = entry.getValue();
                 }
             }
         }
-        return bestNodeSocket;
+        return bestNode;
     }
 
     public double calculateRecentCPULoad(Map<Integer, Double> entryCPULoad,double rollingScore) {

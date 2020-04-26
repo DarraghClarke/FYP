@@ -1,30 +1,31 @@
 package service.core;
 
-import oshi.SystemInfo;
 import org.java_websocket.WebSocket;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.UUID;
 
-public class NodeInfo extends Message{
+public class NodeInfo extends Message {
     UUID systemID;
     WebSocket webSocket;
     String serviceName;
-    Map<Integer,Double> CPUload;
-    Map<Integer,Double> RamLoad;
+    Map<Integer, Double> CPUload;
+    Map<Integer, Double> RamLoad;
     double rollingCPUScore;
-    double rollinhRamScore;
+    double rollingRamScore;
     boolean trustyworthy = true;
+    URI serviceHostAddress;
 
     public NodeInfo() {
         super(Message.MessageTypes.NODE_INFO);
     }
 
-    public NodeInfo(UUID systemID,Map<Integer,Double> CPUload , String serviceName) {
+    public NodeInfo(UUID systemID, Map<Integer, Double> CPUload, String serviceName) {
         super(Message.MessageTypes.NODE_INFO);
-        this.systemID=systemID;
-        this.CPUload=CPUload;
-        this.serviceName=serviceName;
+        this.systemID = systemID;
+        this.CPUload = CPUload;
+        this.serviceName = serviceName;
     }
 
     public WebSocket getWebSocket() {
@@ -63,16 +64,24 @@ public class NodeInfo extends Message{
         return rollingCPUScore;
     }
 
-    public double getRollinhRamScore() {
-        return rollinhRamScore;
+    public double getRollingRamScore() {
+        return rollingRamScore;
     }
 
     public void setRollingCPUScore(double rollingCPUScore) {
         this.rollingCPUScore = rollingCPUScore;
     }
 
-    public void setRollinhRamScore(double rollinhRamScore) {
-        this.rollinhRamScore = rollinhRamScore;
+    public void setRollingRamScore(double rollingRamScore) {
+        this.rollingRamScore = rollingRamScore;
+    }
+
+    public URI getServiceHostAddress() {
+        return serviceHostAddress;
+    }
+
+    public void setServiceHostAddress(URI serviceHostAddress) {
+        this.serviceHostAddress = serviceHostAddress;
     }
 
     public void setCPUload(Map<Integer, Double> CPUload) {
