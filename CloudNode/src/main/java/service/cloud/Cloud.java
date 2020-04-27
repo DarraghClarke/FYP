@@ -21,7 +21,7 @@ public class Cloud extends WebSocketClient {
 
     private File service;
     private UUID assignedUUID;
-    private Proxy proxyName;
+    private int hostPort;
     SystemInfo nodeSystem = new SystemInfo();
     HardwareAbstractionLayer hal = nodeSystem.getHardware();
     CentralProcessor processor = hal.getProcessor();
@@ -30,18 +30,19 @@ public class Cloud extends WebSocketClient {
     private Map<Integer, Double> historicalCPUload = new HashMap<>();
     private Map<Integer, Double> historicalRamload = new HashMap<>();
 
-    public Cloud(URI serverUri, File service) {
+    public Cloud(URI serverUri, File service, int port) {
         super(serverUri);
         this.service = service;//service is stored in edge node
         //this.proxyName = proxyName;
         dockerController = new DockerController();
+        hostPort = port;
         System.out.println(serverUri + " space   " + service.getAbsolutePath());
         getCPULoad();
         getRamLoad();
     }
 
     public static void main(String[] args) throws URISyntaxException {
-        Cloud cloud = new Cloud(new URI("ws://localhost:443"), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"));
+        Cloud cloud = new Cloud(new URI("ws://localhost:443"), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"),444);
         cloud.run();
     }
 
@@ -124,13 +125,13 @@ public class Cloud extends WebSocketClient {
     public void launchTransferClient(String serverAddress) throws URISyntaxException, UnknownHostException {
         System.out.println("GOT HERE");
         System.out.println(serverAddress);
-        TransferClient transferClient = new TransferClient(new URI("ws://localhost:6969"), dockerController);
+        TransferClient transferClient = new TransferClient(new URI(serverAddress), dockerController);
         transferClient.connect();
         while (transferClient.dockerControllerReady() == null) {
         }
         DockerController dockerController = transferClient.dockerControllerReady();
         transferClient.close();
-        ServiceHost serviceHost = new ServiceHost(6969, dockerController);
+        ServiceHost serviceHost = new ServiceHost(hostPort, dockerController);
         serviceHost.run();
     }
 
@@ -163,7 +164,7 @@ public class Cloud extends WebSocketClient {
 
 
     public InetSocketAddress launchTempServer() {
-        InetSocketAddress serverAddress = new InetSocketAddress(6969);
+        InetSocketAddress serverAddress = new InetSocketAddress(hostPort);
         System.out.println(serverAddress.toString());
         setReuseAddr(true);
         TransferServer transferServer = new TransferServer(serverAddress, service);

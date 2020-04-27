@@ -41,7 +41,7 @@ public class TransferClient extends WebSocketClient {
             fos.write(b);
             fos.close();
             dockerLaunched=true;
-            dockerController.launchServiceOnNode(new File("service.tar"));
+            dockerController.launchServiceOnNode(new File("service.tar"));;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {

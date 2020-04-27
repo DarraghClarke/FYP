@@ -15,8 +15,8 @@ import java.security.KeyStore;
 //based on TooTallNate example https://github.com/TooTallNate/Java-WebSocket/blob/master/src/main/example/SSLClientExample.java
 public class SSLMain {
 
-    SSLMain(URI address,boolean flag) throws Exception{
-        Edge node = new Edge(address,flag);
+    SSLMain(URI address,boolean flag,int port) throws Exception{
+        Edge node = new Edge(address,flag,port);
 
         // load up the key store
         String STORETYPE = "JKS";
@@ -58,6 +58,6 @@ public class SSLMain {
     }
 
     public static void main( String[] args ) throws Exception {
-        SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), false);
+        SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), false,445);
     }
 }

@@ -30,6 +30,7 @@ public class TransferServer extends WebSocketServer {
             fis.close();
             webSocket.send(bytesArray);
 
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -40,7 +41,14 @@ public class TransferServer extends WebSocketServer {
 
     @Override
     public void onClose(WebSocket webSocket, int i, String s, boolean b) {
-
+        webSocket.close();
+        try {
+            stop();//if this is unstable this could be moved to the owner of this object and they could close it
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

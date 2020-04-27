@@ -26,14 +26,17 @@ public class cmMain implements Runnable{
     @Parameters(index = "1", paramLabel = "file", description = "The location of the service you wish to run")
     private File file;
 
+    @Parameters(index = "2", paramLabel = "port", description = "The port any services will run out of on this machine")
+    private  int port;
+
     @Override
     public void run() {
         if(!secure) {
-            Cloud cloud = new Cloud(address, file);
+            Cloud cloud = new Cloud(address, file,port);
             cloud.run();
         }else{
             try {
-                new SSLMain(address,file);
+                new SSLMain(address,file,port);
             } catch (Exception e) {
                 e.printStackTrace();
             }

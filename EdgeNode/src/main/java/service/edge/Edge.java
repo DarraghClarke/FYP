@@ -26,19 +26,21 @@ public class Edge extends WebSocketClient {
     CentralProcessor processor = hal.getProcessor();
     GlobalMemory memory = hal.getMemory();
     DockerController dockerController;
+    private int hostPort;
     private File service;
     private UUID assignedUUID;
     private Map<Integer, Double> historicalCPUload = new HashMap<>();
     private Map<Integer, Double> historicalRamload = new HashMap<>();
 
-    public Edge(URI serverUri, boolean trustWorthy) {//, File service) {
+    public Edge(URI serverUri, boolean trustWorthy,int port) {//, File service) {
         super(serverUri);
         dockerController = new DockerController();
+        hostPort = port;
         //this.service = service;//service is stored in edge node
     }
 
     public static void main(String[] args) throws URISyntaxException {
-        Edge edge = new Edge(new URI("ws://localhost:443"), false);
+        Edge edge = new Edge(new URI("ws://localhost:443"), false,442);
         edge.run();
     }
 
@@ -86,7 +88,7 @@ public class Edge extends WebSocketClient {
                 NodeInfoRequest infoRequest = (NodeInfoRequest) messageObj;
                 assignedUUID = infoRequest.getAssignedUUID();
                 sendHeartbeatResponse();
-                serviceRequestor();
+                //serviceRequestor();
                 break;
             case Message.MessageTypes.SERVER_HEARTBEAT_REQUEST:
                 sendHeartbeatResponse();
@@ -135,7 +137,7 @@ public class Edge extends WebSocketClient {
     }
 
     public InetSocketAddress launchTempServer() {
-        InetSocketAddress serverAddress = new InetSocketAddress(6969);
+        InetSocketAddress serverAddress = new InetSocketAddress(hostPort);
         System.out.println(serverAddress.toString());
         setReuseAddr(true);
         TransferServer transferServer = new TransferServer(serverAddress, service);
@@ -147,13 +149,13 @@ public class Edge extends WebSocketClient {
     public void launchTransferClient(String serverAddress) throws URISyntaxException, UnknownHostException {
         System.out.println("GOT HERE");
         System.out.println(serverAddress);
-        TransferClient transferClient = new TransferClient(new URI("ws://localhost:6969"), dockerController);
+        TransferClient transferClient = new TransferClient(new URI("ws://"+ serverAddress), dockerController);
         transferClient.connect();
         while (transferClient.dockerControllerReady() == null) {
         }
         DockerController dockerController = transferClient.dockerControllerReady();
         transferClient.close();
-        ServiceHost serviceHost = new ServiceHost(6969, dockerController);
+        ServiceHost serviceHost = new ServiceHost(hostPort, dockerController);
         serviceHost.run();
     }
 
