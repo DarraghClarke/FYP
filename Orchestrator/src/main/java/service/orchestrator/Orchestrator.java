@@ -85,6 +85,7 @@ public class Orchestrator extends WebSocketServer {
                 .registerSubtype(NodeInfo.class, Message.MessageTypes.NODE_INFO)
                 .registerSubtype(ServiceRequest.class, Message.MessageTypes.SERVICE_REQUEST)
                 .registerSubtype(ServiceResponse.class, Message.MessageTypes.SERVICE_RESPONSE)
+                .registerSubtype(HostRequest.class, Message.MessageTypes.HOST_REQUEST)
                 .registerSubtype(NodeInfoRequest.class, Message.MessageTypes.NODE_INFO_REQUEST);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().registerTypeAdapterFactory(adapter).create();
@@ -98,13 +99,17 @@ public class Orchestrator extends WebSocketServer {
             case Message.MessageTypes.NODE_INFO:
                 NodeInfo nodeInfo = (NodeInfo) messageObj;
                 nodeInfo.setWebSocket(webSocket);
+                //this is meant to
                 connectedNodes.put(nodeInfo.getSystemID(), nodeInfo);
+                if (nodeInfo.getServiceName() != null && nodeInfo.getServiceName().equals("MobileUser")){
+                    connectedNodes.remove(nodeInfo.getSystemID());
+                }
                 break;
             case Message.MessageTypes.SERVICE_REQUEST:
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 String jsonStr = gson.toJson(serviceRequest);
                 System.out.println("ADDED THIS " + serviceRequest.toString());
-                WebSocket a = findBestServiceOwnerAddress(serviceRequest).getWebSocket();//todo null proof this
+                WebSocket a = findBestServiceOwner(serviceRequest).getWebSocket();//todo null proof this
                 a.send(jsonStr);
                 break;
             case Message.MessageTypes.SERVICE_RESPONSE:
@@ -116,43 +121,80 @@ public class Orchestrator extends WebSocketServer {
                 break;
             case Message.MessageTypes.HOST_REQUEST:
                 HostRequest hostRequest = (HostRequest) messageObj;
-                long startTime = System.nanoTime();
-                ServiceRequest requestFromUser = new ServiceRequest(hostRequest.getRequestorID(),hostRequest.getRequestedServiceName());
-                NodeInfo returnedNode = findBestServiceOwnerAddress(requestFromUser);
+                System.out.println("Time that orchestrator gets the request from the phone "+ System.currentTimeMillis());
+                ServiceRequest requestFromUser = new ServiceRequest(hostRequest.getRequestorID(), hostRequest.getRequestedServiceName());
+                NodeInfo returnedNode = transferServiceToEdgeNode(requestFromUser);
+                //NodeInfo returnedNode = findBestServiceOwner(requestFromUser);
                 URI returnURI = returnedNode.getServiceHostAddress();
 
-                jsonStr = gson.toJson(new HostResponse(hostRequest.getRequestorID(),returnURI));
+                jsonStr = gson.toJson(new HostResponse(hostRequest.getRequestorID(), returnURI));
                 webSocket.send(jsonStr);//this sends to requestor address
-                long endTime = System.nanoTime();
+
                 break;
         }
     }
+    public NodeInfo transferServiceToEdgeNode(ServiceRequest serviceRequest) {
+        Map<UUID, NodeInfo> connectedNodesWithoutHosts = connectedNodes;
+        NodeInfo worstCurrentOwner = findWorstServiceOwner(serviceRequest);
+        connectedNodesWithoutHosts.remove(worstCurrentOwner.getSystemID());
+        NodeInfo bestNode = findBestNode(connectedNodesWithoutHosts);//this is all nodes except the worst owner , this is really for testing only
+        ServiceRequest request = new ServiceRequest(bestNode.getSystemID(),serviceRequest.getServiceName());
+        Gson gson = new Gson();
+        String jsonStr = gson.toJson(request);
+        worstCurrentOwner.getWebSocket().send(jsonStr);//this tells the current worst owner of a service that its relived of duty and can send away its service
+        System.out.println("Told worst current owner to transfer the file to best NOde  TIME " + System.currentTimeMillis());
+        return bestNode;
+    }
 
-    public NodeInfo findBestServiceOwnerAddress(ServiceRequest serviceRequest) {
-        Map<UUID, NodeInfo> allServiceOwnerAddresses = findAllServiceOwnerAddresses(serviceRequest);
-        NodeInfo bestNode = null;
-        double bestNodeScore = 200;
+    public NodeInfo transferServiceToBestNode(ServiceRequest serviceRequest) {
+        NodeInfo bestNode = findBestNode(connectedNodes);
+        NodeInfo worstCurrentOwner = findWorstServiceOwner(serviceRequest);
+        ServiceRequest request = new ServiceRequest(bestNode.getSystemID(),serviceRequest.getServiceName());
+        Gson gson = new Gson();
+        String jsonStr = gson.toJson(request);
+        worstCurrentOwner.getWebSocket().send(jsonStr);//this tells the current worst owner of a service that its relived of duty and can send away its service
+
+        return bestNode;
+    }
+
+    public NodeInfo findWorstServiceOwner(ServiceRequest serviceRequest) {
+        NodeInfo worstNode = null;
+        Map<UUID, NodeInfo> allServiceOwnerAddresses = findAllServiceOwners(serviceRequest);
         if (allServiceOwnerAddresses == null) {
             //noone had this service, inform edgenode
+        } else {
+            worstNode = findBestNode(allServiceOwnerAddresses);
         }
-        //else if(allServiceOwnerAddresses.size()==1){ //case wheres there only one entry
-        //    bestNodeSocket=allServiceOwnerAddresses.;
-        //}
-        else {
-            for (Map.Entry<UUID, NodeInfo> entry : allServiceOwnerAddresses.entrySet()) {
-                //Map<Integer, Double> entryCPULoad = entry.getValue().getCPUload();
-                double currentNodeCPUScore = calculateRecentCPULoad(entry.getValue().getCPUload(),entry.getValue().getRollingCPUScore());
-                double currentNodeRamScore = calculateRecentRamLoad(entry.getValue().getRamLoad(),entry.getValue().getRollingRamScore());
-                if (currentNodeCPUScore+currentNodeRamScore < bestNodeScore && entry.getValue().isTrustyworthy()) {
-                    bestNodeScore = currentNodeCPUScore;
-                    bestNode = entry.getValue();
-                }
+        return worstNode;
+    }
+
+    public NodeInfo findBestServiceOwner(ServiceRequest serviceRequest) {
+        NodeInfo bestNode = null;
+        Map<UUID, NodeInfo> allServiceOwnerAddresses = findAllServiceOwners(serviceRequest);
+        if (allServiceOwnerAddresses == null) {
+            //noone had this service, inform edgenode
+        } else {
+            bestNode = findBestNode(allServiceOwnerAddresses);
+        }
+        return bestNode;
+    }
+
+    private NodeInfo findBestNode(Map<UUID, NodeInfo> Nodes) {
+        double bestNodeScore = 200;
+        NodeInfo bestNode = null;
+        for (Map.Entry<UUID, NodeInfo> entry : Nodes.entrySet()) {
+            //Map<Integer, Double> entryCPULoad = entry.getValue().getCPUload();
+            double currentNodeCPUScore = calculateRecentCPULoad(entry.getValue().getCPUload(), entry.getValue().getRollingCPUScore());
+            double currentNodeRamScore = calculateRecentRamLoad(entry.getValue().getRamLoad(), entry.getValue().getRollingRamScore());
+            if (currentNodeCPUScore + currentNodeRamScore < bestNodeScore && entry.getValue().isTrustyworthy()) {
+                bestNodeScore = currentNodeCPUScore;
+                bestNode = entry.getValue();
             }
         }
         return bestNode;
     }
 
-    public double calculateRecentCPULoad(Map<Integer, Double> entryCPULoad,double rollingScore) {
+    public double calculateRecentCPULoad(Map<Integer, Double> entryCPULoad, double rollingScore) {
         double runningTotal = -1;
         if (entryCPULoad.size() >= 5) {
             for (int i = entryCPULoad.size() - 1; i > entryCPULoad.size() - 5; i--) {
@@ -160,21 +202,21 @@ public class Orchestrator extends WebSocketServer {
             }
         }
 
-        return (0.2*rollingScore)+(0.8*(runningTotal / 5));
+        return (0.2 * rollingScore) + (0.8 * (runningTotal / 5));
     }
 
-    public double calculateRecentRamLoad(Map<Integer, Double> entryRamLoad,double rollingScore) {
-        double runningTotal=-1;
+    public double calculateRecentRamLoad(Map<Integer, Double> entryRamLoad, double rollingScore) {
+        double runningTotal = -1;
         if (entryRamLoad.size() >= 5) {
             for (int i = entryRamLoad.size() - 1; i > entryRamLoad.size() - 5; i--) {
-                runningTotal = + entryRamLoad.get(i);
+                runningTotal = +entryRamLoad.get(i);
             }
         }
-        return (0.2*rollingScore)+(0.8*(runningTotal / 5));
+        return (0.2 * rollingScore) + (0.8 * (runningTotal / 5));
     }
 
 
-    public Map<UUID, NodeInfo> findAllServiceOwnerAddresses(ServiceRequest serviceRequest) {
+    public Map<UUID, NodeInfo> findAllServiceOwners(ServiceRequest serviceRequest) {
         Map<UUID, NodeInfo> toReturn = new HashMap<>();
         for (Map.Entry<UUID, NodeInfo> entry : connectedNodes.entrySet()) {
             System.out.println(entry.getKey());
@@ -185,6 +227,10 @@ public class Orchestrator extends WebSocketServer {
             }
         }
         return toReturn;
+
+    }
+
+    public void findNewCandidateForService() {
 
     }
 

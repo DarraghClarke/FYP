@@ -12,9 +12,9 @@ import java.security.*;
 //based on TooTallNate example at https://github.com/TooTallNate/Java-WebSocket/blob/master/src/main/example/SSLClientExample.java
 
 public class SSLMain {
-    SSLMain(URI address ,File serviceToRun, int port) throws Exception{
+    SSLMain(URI address ,File serviceToRun, URI serviceAddress) throws Exception{
 
-        Cloud node = new Cloud( address , serviceToRun,port);//wss://137.43.49.51:443
+        Cloud node = new Cloud( address , serviceToRun,serviceAddress);//wss://137.43.49.51:443
 
         // load up the key store
         String STORETYPE = "JKS";
@@ -54,6 +54,6 @@ public class SSLMain {
     }
 
     public static void main( String[] args ) throws Exception {
-        SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"),444);
+        //SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"),444);
     }
 }

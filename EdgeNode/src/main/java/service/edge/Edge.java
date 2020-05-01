@@ -26,22 +26,22 @@ public class Edge extends WebSocketClient {
     CentralProcessor processor = hal.getProcessor();
     GlobalMemory memory = hal.getMemory();
     DockerController dockerController;
-    private int hostPort;
+    private URI serviceAddress;
     private File service;
     private UUID assignedUUID;
     private Map<Integer, Double> historicalCPUload = new HashMap<>();
     private Map<Integer, Double> historicalRamload = new HashMap<>();
 
-    public Edge(URI serverUri, boolean trustWorthy,int port) {//, File service) {
+    public Edge(URI serverUri, boolean trustWorthy,URI serviceAddress) {//, File service) {
         super(serverUri);
         dockerController = new DockerController();
-        hostPort = port;
+        this.serviceAddress = serviceAddress;
         //this.service = service;//service is stored in edge node
     }
 
     public static void main(String[] args) throws URISyntaxException {
-        Edge edge = new Edge(new URI("ws://localhost:443"), false,442);
-        edge.run();
+        //Edge edge = new Edge(new URI("ws://localhost:443"), false,442);
+        //edge.run();
     }
 
     public void serviceRequestor() {
@@ -101,7 +101,7 @@ public class Edge extends WebSocketClient {
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 gson = new Gson();
                 InetSocketAddress serverAddress = launchTempServer();
-                ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serverAddress.getHostName() + ":" + serverAddress.getPort());
+                ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serviceAddress.getHost() + ":" + serviceAddress.getPort());
                 System.out.println(serviceResponse.getServiceOwnerAddress());
                 String jsonStr = gson.toJson(serviceResponse);
                 System.out.println(jsonStr);
@@ -110,6 +110,7 @@ public class Edge extends WebSocketClient {
             case Message.MessageTypes.SERVICE_RESPONSE:
                 //this gives the proxy address we want
                 ServiceResponse response = (ServiceResponse) messageObj;
+                System.out.println("Time that EDge gets the Response from the Orchestrator "+ System.currentTimeMillis());
                 System.out.println(response);
                 System.out.println(response.getServiceOwnerAddress());
 
@@ -126,6 +127,7 @@ public class Edge extends WebSocketClient {
     public void sendHeartbeatResponse() {
         Gson gson = new Gson();
         NodeInfo nodeInfo = new NodeInfo(assignedUUID, null, null);
+        nodeInfo.setServiceHostAddress(serviceAddress);
         if (!historicalCPUload.isEmpty()) {
             nodeInfo.setCPUload(historicalCPUload);
         }
@@ -137,9 +139,10 @@ public class Edge extends WebSocketClient {
     }
 
     public InetSocketAddress launchTempServer() {
-        InetSocketAddress serverAddress = new InetSocketAddress(hostPort);
+        InetSocketAddress serverAddress = new InetSocketAddress(serviceAddress.getPort());
         System.out.println(serverAddress.toString());
         setReuseAddr(true);
+        System.out.println("the transfer Server tried to run");
         TransferServer transferServer = new TransferServer(serverAddress, service);
         transferServer.start();
 
@@ -149,13 +152,16 @@ public class Edge extends WebSocketClient {
     public void launchTransferClient(String serverAddress) throws URISyntaxException, UnknownHostException {
         System.out.println("GOT HERE");
         System.out.println(serverAddress);
-        TransferClient transferClient = new TransferClient(new URI("ws://"+ serverAddress), dockerController);
+        TransferClient transferClient = new TransferClient(new URI("ws://" +serverAddress), dockerController);
         transferClient.connect();
         while (transferClient.dockerControllerReady() == null) {
         }
         DockerController dockerController = transferClient.dockerControllerReady();
         transferClient.close();
-        ServiceHost serviceHost = new ServiceHost(hostPort, dockerController);
+        System.out.println(serviceAddress + " just port " +serviceAddress.getPort());
+        String[] array = serviceAddress.toString().split(":");
+        ServiceHost serviceHost = new ServiceHost(Integer.parseInt(array[5]), dockerController);
+        System.out.println(array[2]);
         serviceHost.run();
     }
 

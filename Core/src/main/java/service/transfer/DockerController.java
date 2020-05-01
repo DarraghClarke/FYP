@@ -19,6 +19,7 @@ public class DockerController {
             pr = rt.exec("docker run sample");//todo make generic
             //System.out.println("in the launch phas4");
             //This while loop prints the output of the docker image a real file would be different
+            System.out.println("TIME AT DOCKER LAUNCH" + System.currentTimeMillis());
             while (true) {
                 BufferedReader r = new BufferedReader(new InputStreamReader(pr.getInputStream()));
                 String line = r.readLine();

@@ -5,7 +5,7 @@
 
     <groupId>clarke.fyp</groupId>
     <artifactId>orchestrator</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.0b</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -60,7 +60,7 @@
     </dependencies>
 
     <properties>
-        <main.class>service.orchestrator.SSLMain</main.class>
+        <main.class>service.orchestrator.cmMain</main.class>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
@@ -78,7 +78,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>service.orchestrator.SSLMain</mainClass>
+                            <mainClass>service.orchestrator.cmMain</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -113,7 +113,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>service.orchestrator.SSLMain</mainClass>
+                            <mainClass>service.orchestrator.cmMain</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

@@ -20,14 +20,14 @@ public class cmMain implements Runnable{
     //@Option(names = { "-r", "--request" }, paramLabel = "requestedService", description = "requestedService")
     //File requestedService;
 
-    @Parameters(index = "0", paramLabel = "address", description = "The address of the orchestrator, should be in format wss://{ip}:{port}")
+    @Parameters(index = "0", paramLabel = "address", description = "The address of the orchestrator format wss://{ip}:{port}")
     private URI address;
 
     @Parameters(index = "1", paramLabel = "file", description = "The location of the service you wish to run")
     private File file;
 
-    @Parameters(index = "2", paramLabel = "port", description = "The port any services will run out of on this machine")
-    private  int port;
+    @Parameters(index = "2", paramLabel = "serviceAddress", description = "The address any services will run out of on this machine {ip}:{port}")
+    private URI port;
 
     @Override
     public void run() {

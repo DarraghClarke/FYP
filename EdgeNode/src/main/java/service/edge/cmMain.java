@@ -27,7 +27,7 @@ public class cmMain implements Runnable{
     private File file;
 
     @Parameters(index = "2", paramLabel = "port", description = "The port any services will run out of on this machine")
-    private  int port;
+    private URI port;
 
     @Override
     public void run() {

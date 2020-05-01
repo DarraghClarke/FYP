@@ -4,10 +4,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
@@ -15,18 +12,18 @@ import java.security.KeyStore;
 //based on TooTallNate example https://github.com/TooTallNate/Java-WebSocket/blob/master/src/main/example/SSLClientExample.java
 public class SSLMain {
 
-    SSLMain(URI address,boolean flag,int port) throws Exception{
-        Edge node = new Edge(address,flag,port);
+    SSLMain(URI address,boolean flag,URI serviceAddress) throws Exception{
+        Edge node = new Edge(address,flag,serviceAddress);
 
         // load up the key store
         String STORETYPE = "JKS";
-        String KEYSTORE = "src/main/java/keystore.jks";
         String STOREPASSWORD = "storepassword";
         String KEYPASSWORD = "keypassword";
 
         KeyStore ks = KeyStore.getInstance( STORETYPE );
-        File kf = new File( KEYSTORE );
-        ks.load( new FileInputStream( kf ), STOREPASSWORD.toCharArray() );
+        InputStream is =  this.getClass().getResourceAsStream("/keystore.jks");
+        System.out.println(is.toString());
+        ks.load( is, STOREPASSWORD.toCharArray() );
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance( "SunX509" );
         kmf.init( ks, KEYPASSWORD.toCharArray() );
@@ -58,6 +55,6 @@ public class SSLMain {
     }
 
     public static void main( String[] args ) throws Exception {
-        SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), false,445);
+        //SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), false,445);
     }
 }

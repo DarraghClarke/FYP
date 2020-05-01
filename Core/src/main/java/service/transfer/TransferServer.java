@@ -16,15 +16,19 @@ public class TransferServer extends WebSocketServer {
     public TransferServer(InetSocketAddress address, File service) {
         super(address);
         this.service = service;
+
+        System.out.println("Launched the transfer server");
     }
 
     @Override
     public void onOpen(WebSocket webSocket, ClientHandshake clientHandshake) {
-        System.out.println("connected to tempClient");
+        System.out.println("connected to tempClient" + " TIME AT START " + System.currentTimeMillis());
         byte[] bytesArray = new byte[(int) service.length()];
 
         FileInputStream fis;
+        System.out.println("Trying to send");
         try {
+            System.out.println("Trying to send 2");
             fis = new FileInputStream(service);
             fis.read(bytesArray);
             fis.close();

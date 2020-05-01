@@ -21,7 +21,7 @@ public class TransferClient extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
-        System.out.println("connected to tempServer");
+        System.out.println("connected to tempServer " + " TIME AT FIRST CONNECTION" + System.currentTimeMillis());
     }
 
     @Override
@@ -29,6 +29,7 @@ public class TransferClient extends WebSocketClient {
         Gson gson = new Gson();
         File gsonFile = gson.fromJson(file, File.class);
         dockerLaunched=true;
+        System.out.println("connected to tempClient" + " TIME AT END OF MIGRATION" + System.currentTimeMillis());
         dockerController.launchServiceOnNode(gsonFile);
     }
 

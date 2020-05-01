@@ -21,7 +21,7 @@ public class Cloud extends WebSocketClient {
 
     private File service;
     private UUID assignedUUID;
-    private int hostPort;
+    private URI serviceAddress;
     SystemInfo nodeSystem = new SystemInfo();
     HardwareAbstractionLayer hal = nodeSystem.getHardware();
     CentralProcessor processor = hal.getProcessor();
@@ -30,20 +30,20 @@ public class Cloud extends WebSocketClient {
     private Map<Integer, Double> historicalCPUload = new HashMap<>();
     private Map<Integer, Double> historicalRamload = new HashMap<>();
 
-    public Cloud(URI serverUri, File service, int port) {
+    public Cloud(URI serverUri, File service, URI serviceAddress) {
         super(serverUri);
         this.service = service;//service is stored in edge node
         //this.proxyName = proxyName;
         dockerController = new DockerController();
-        hostPort = port;
+        this.serviceAddress = serviceAddress;
         System.out.println(serverUri + " space   " + service.getAbsolutePath());
         getCPULoad();
         getRamLoad();
     }
 
     public static void main(String[] args) throws URISyntaxException {
-        Cloud cloud = new Cloud(new URI("ws://localhost:443"), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"),444);
-        cloud.run();
+        //Cloud cloud = new Cloud(new URI("ws://localhost:443"), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"),444);
+        //cloud.run();
     }
 
     @Override
@@ -83,10 +83,11 @@ public class Cloud extends WebSocketClient {
                 break;
             //request for the service on the node
             case Message.MessageTypes.SERVICE_REQUEST:
+                System.out.println("Time that Cloud gets the request from the Orchestrator "+ System.currentTimeMillis());
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 gson = new Gson();
                 InetSocketAddress serverAddress = launchTempServer();
-                ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serverAddress.getHostName() + ":" + serverAddress.getPort());
+                ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serviceAddress.getHost() + ":" + serviceAddress.getPort());
                 System.out.println(serviceResponse.getServiceOwnerAddress());
                 String jsonStr = gson.toJson(serviceResponse);
                 System.out.println(jsonStr);
@@ -111,6 +112,7 @@ public class Cloud extends WebSocketClient {
     public void sendHeartbeatResponse() {
         Gson gson = new Gson();
         NodeInfo nodeInfo = new NodeInfo(assignedUUID, null, service.getName());
+        nodeInfo.setServiceHostAddress(serviceAddress);
         if (!historicalCPUload.isEmpty()) {
             nodeInfo.setCPUload(historicalCPUload);
         }
@@ -125,13 +127,13 @@ public class Cloud extends WebSocketClient {
     public void launchTransferClient(String serverAddress) throws URISyntaxException, UnknownHostException {
         System.out.println("GOT HERE");
         System.out.println(serverAddress);
-        TransferClient transferClient = new TransferClient(new URI(serverAddress), dockerController);
+        TransferClient transferClient = new TransferClient(new URI("ws://" + serverAddress), dockerController);
         transferClient.connect();
         while (transferClient.dockerControllerReady() == null) {
         }
         DockerController dockerController = transferClient.dockerControllerReady();
         transferClient.close();
-        ServiceHost serviceHost = new ServiceHost(hostPort, dockerController);
+        ServiceHost serviceHost = new ServiceHost(serviceAddress.getPort(), dockerController);
         serviceHost.run();
     }
 
@@ -164,9 +166,10 @@ public class Cloud extends WebSocketClient {
 
 
     public InetSocketAddress launchTempServer() {
-        InetSocketAddress serverAddress = new InetSocketAddress(hostPort);
+        InetSocketAddress serverAddress = new InetSocketAddress(serviceAddress.getPort());
         System.out.println(serverAddress.toString());
         setReuseAddr(true);
+        System.out.println("the transfer Server tried to run");
         TransferServer transferServer = new TransferServer(serverAddress, service);
         transferServer.start();
 
