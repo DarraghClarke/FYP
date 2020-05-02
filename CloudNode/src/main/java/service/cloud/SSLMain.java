@@ -1,7 +1,5 @@
 package service.cloud;
 
-import org.apache.tomcat.jni.SSL;
-
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;

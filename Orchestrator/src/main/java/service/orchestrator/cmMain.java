@@ -12,10 +12,6 @@ import java.net.UnknownHostException;
 @CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.1")
 public class cmMain implements Runnable{
 
-    @Option(names = { "-v", "--verbose" },
-            description = "Verbose mode. Helpful for troubleshooting.")
-    private boolean[] verbose = new boolean[0];
-
     @Option(names = { "-s", "--secure" },
             description = "Secure mode, only engages with orchestrators using SSL")
     private boolean secure;
