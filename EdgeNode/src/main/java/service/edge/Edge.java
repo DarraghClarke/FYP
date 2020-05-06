@@ -23,45 +23,27 @@ import java.util.*;
 public class Edge extends WebSocketClient {
     SystemInfo nodeSystem = new SystemInfo();
     HardwareAbstractionLayer hal = nodeSystem.getHardware();
-    CentralProcessor processor = hal.getProcessor();
-    GlobalMemory memory = hal.getMemory();
     DockerController dockerController;
+    private boolean trustWorthyNode, secureMode;
     private URI serviceAddress;
     private File service;
     private UUID assignedUUID;
     private Map<Integer, Double> historicalCPUload = new HashMap<>();
     private Map<Integer, Double> historicalRamload = new HashMap<>();
 
-    public Edge(URI serverUri, boolean trustWorthy,URI serviceAddress) {//, File service) {
+    public Edge(URI serverUri, boolean trustWorthy, URI serviceAddress, boolean secure) {
         super(serverUri);
         dockerController = new DockerController();
         this.serviceAddress = serviceAddress;
-        //this.service = service;//service is stored in edge node
-    }
-
-    public static void main(String[] args) throws URISyntaxException {
-        //Edge edge = new Edge(new URI("ws://localhost:443"), false,442);
-        //edge.run();
-    }
-
-    public void serviceRequestor() {
-        Gson gson = new Gson();
-
-        ServiceRequest serviceRequest = new ServiceRequest(assignedUUID, "docker.tar");//atm assumes there is only 1 service and leaves it up to orchestrator to find it
-        String jsonStr = gson.toJson(serviceRequest);
-        while (historicalCPUload.size() < 5 && historicalRamload.size() < 5) {
-            System.out.println(historicalCPUload.size());
-        }
-        send(jsonStr);
-        System.out.println(serviceRequest.getType());
+        trustWorthyNode = trustWorthy;
+        secureMode = secure;
+        getSystemLoad();
     }
 
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
         System.out.println("connected to orchestrator");
         System.out.println(Edge.this.getLocalSocketAddress());//this is the local address in theory
-        getCPULoad();
-        getRamLoad();
     }
 
     @Override
@@ -88,31 +70,26 @@ public class Edge extends WebSocketClient {
                 NodeInfoRequest infoRequest = (NodeInfoRequest) messageObj;
                 assignedUUID = infoRequest.getAssignedUUID();
                 sendHeartbeatResponse();
-                //serviceRequestor();
                 break;
             case Message.MessageTypes.SERVER_HEARTBEAT_REQUEST:
                 sendHeartbeatResponse();
                 break;
             case Message.MessageTypes.SERVICE_REQUEST:
-                //gson = new Gson();
-                //Service serviceToReturn = new Service(assignedUUID, service);
-                //String jsonStr = gson.toJson(serviceToReturn);
-                //send(jsonStr);
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 gson = new Gson();
-                InetSocketAddress serverAddress = launchTempServer();
+                try {
+                    InetSocketAddress serverAddress = launchTransferServer();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serviceAddress.getHost() + ":" + serviceAddress.getPort());
-                System.out.println(serviceResponse.getServiceOwnerAddress());
                 String jsonStr = gson.toJson(serviceResponse);
-                System.out.println(jsonStr);
                 send(jsonStr);
                 break;
             case Message.MessageTypes.SERVICE_RESPONSE:
                 //this gives the proxy address we want
                 ServiceResponse response = (ServiceResponse) messageObj;
-                System.out.println("Time that EDge gets the Response from the Orchestrator "+ System.currentTimeMillis());
-                System.out.println(response);
-                System.out.println(response.getServiceOwnerAddress());
+                System.out.println("Time that EDge gets the Response from the Orchestrator " + System.currentTimeMillis());
 
                 try {
                     launchTransferClient(response.getServiceOwnerAddress());
@@ -124,10 +101,14 @@ public class Edge extends WebSocketClient {
         }
     }
 
-    public void sendHeartbeatResponse() {
+    /**
+     * Constructs and sends Heartbeat responses when called
+     */
+    private void sendHeartbeatResponse() {
         Gson gson = new Gson();
         NodeInfo nodeInfo = new NodeInfo(assignedUUID, null, null);
         nodeInfo.setServiceHostAddress(serviceAddress);
+        nodeInfo.setTrustyworthy(trustWorthyNode);
         if (!historicalCPUload.isEmpty()) {
             nodeInfo.setCPUload(historicalCPUload);
         }
@@ -138,34 +119,65 @@ public class Edge extends WebSocketClient {
         send(jsonStr);
     }
 
-    public InetSocketAddress launchTempServer() {
+    /**
+     * This method launches this nodes Transfer Server using the service address define at node creation
+     *
+     * @return the InetSocketAddress of the new temp server
+     */
+    private InetSocketAddress launchTransferServer() throws Exception {
         InetSocketAddress serverAddress = new InetSocketAddress(serviceAddress.getPort());
-        System.out.println(serverAddress.toString());
         setReuseAddr(true);
-        System.out.println("the transfer Server tried to run");
-        TransferServer transferServer = new TransferServer(serverAddress, service);
-        transferServer.start();
+        if (!secureMode) {
+            TransferServer transferServer = new TransferServer(serverAddress, service);
+            transferServer.start();
+        } else {
+            new SecureTransferServer(serverAddress, service);
+        }
 
         return serverAddress;
     }
 
-    public void launchTransferClient(String serverAddress) throws URISyntaxException, UnknownHostException {
-        System.out.println("GOT HERE");
-        System.out.println(serverAddress);
-        TransferClient transferClient = new TransferClient(new URI("ws://" +serverAddress), dockerController);
+    /**
+     * This method creates and launches the TransferClient for this client,
+     * If this node is in secure mode then the TransferClient will also be in secure mode
+     * After a successful connection this method will start the launch process for the new service.
+     *
+     * @param serverAddress The address of the TransferServer that is trying to be connected to
+     * @throws URISyntaxException
+     * @throws UnknownHostException
+     */
+    private void launchTransferClient(String serverAddress) throws URISyntaxException, UnknownHostException {
+        URI transferServerURI;
+        if (secureMode) {
+            transferServerURI = new URI("wss://" + serverAddress);
+        } else {
+            transferServerURI = new URI("ws://" + serverAddress);
+        }
+        TransferClient transferClient = new TransferClient(transferServerURI, dockerController);
         transferClient.connect();
         while (transferClient.dockerControllerReady() == null) {
         }
         DockerController dockerController = transferClient.dockerControllerReady();
         transferClient.close();
-        System.out.println(serviceAddress + " just port " +serviceAddress.getPort());
+        launchServiceOnDockerController(dockerController);
+    }
+
+    /**
+     * This method will launch the host server that will allow users to communicate with the docker instance
+     *
+     * @param dockerController takes in the dockerController which has the service information
+     * @throws UnknownHostException
+     */
+    private void launchServiceOnDockerController(DockerController dockerController) throws UnknownHostException {
         String[] array = serviceAddress.toString().split(":");
         ServiceHost serviceHost = new ServiceHost(Integer.parseInt(array[5]), dockerController);
-        System.out.println(array[2]);
         serviceHost.run();
     }
 
-    public void getCPULoad() {
+    /**
+     * This method polls the system every second and stores pecentage values for CPU and Ram Usage
+     */
+    private void getSystemLoad() {
         new Timer().schedule(
                 new TimerTask() {
                     int secondCounter = 0;
@@ -173,25 +185,11 @@ public class Edge extends WebSocketClient {
                     @Override
                     public void run() {
                         secondCounter++;
-                        historicalCPUload.put(secondCounter, processor.getSystemCpuLoadBetweenTicks() * 100);
-                    }
-                }, 0, 1000);
-
-    }
-
-    public void getRamLoad() {
-        new Timer().schedule(
-                new TimerTask() {
-                    int secondcounter = 0;
-
-                    @Override
-                    public void run() {
-                        secondcounter++;
-                        historicalRamload.put(secondcounter, (double) ((memory.getAvailable() / memory.getTotal()) * 100));
+                        historicalCPUload.put(secondCounter, hal.getProcessor().getSystemCpuLoadBetweenTicks() * 100);
+                        historicalRamload.put(secondCounter, (double) ((hal.getMemory().getAvailable() / hal.getMemory().getTotal()) * 100));
                     }
                 }, 0, 1000);
     }
-
 
     @Override
     public void onClose(int i, String s, boolean b) {

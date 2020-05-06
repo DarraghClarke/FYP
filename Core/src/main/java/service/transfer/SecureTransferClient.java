@@ -1,20 +1,21 @@
-package service.cloud;
+package service.transfer;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
 import java.security.KeyStore;
 
-public class SSLMain {
-    SSLMain(URI address, File serviceToRun, URI serviceAddress,Boolean secure) throws Exception {
+public class SecureTransferClient {
 
-        Cloud node = new Cloud(address, serviceToRun, serviceAddress,secure);
+    public SecureTransferClient(URI serverUri, DockerController dockerController) throws Exception {
+        TransferClient transferClient = new TransferClient(serverUri,dockerController);
 
         // load up the key store
         String STORETYPE = "JKS";
@@ -23,6 +24,7 @@ public class SSLMain {
 
         KeyStore ks = KeyStore.getInstance(STORETYPE);
         InputStream is = this.getClass().getResourceAsStream("/keystore.jks");
+        System.out.println(is.toString());
         ks.load(is, STOREPASSWORD.toCharArray());
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
@@ -30,23 +32,25 @@ public class SSLMain {
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
         tmf.init(ks);
 
-        SSLContext sslContext = SSLContext.getInstance("TLS");
+        SSLContext sslContext = null;
+        sslContext = SSLContext.getInstance("TLS");
         sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
         SSLSocketFactory factory = sslContext.getSocketFactory();
 
-        node.setSocketFactory(factory);
+        transferClient.setSocketFactory(factory);
 
-        node.connectBlocking();
+        transferClient.connectBlocking();
+
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
             String line = reader.readLine();
             if (line.equals("close")) {
-                node.closeBlocking();
+                transferClient.closeBlocking();
             } else if (line.equals("open")) {
-                node.reconnect();
+                transferClient.reconnect();
             } else {
-                node.send(line);
+                transferClient.send(line);
             }
         }
     }

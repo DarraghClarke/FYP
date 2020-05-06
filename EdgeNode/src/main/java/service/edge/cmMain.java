@@ -29,11 +29,11 @@ public class cmMain implements Runnable{
     @Override
     public void run() {
         if(!secure) {
-            Edge edge = new Edge(address,!badAgent,port);
+            Edge edge = new Edge(address,badAgent,port, !secure);
             edge.run();
         }else{
             try {
-                new SSLMain(address,!badAgent,port);
+                new SSLMain(address,badAgent,port,secure);
 
             } catch (Exception e) {
                 e.printStackTrace();
