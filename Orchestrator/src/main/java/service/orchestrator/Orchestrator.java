@@ -75,7 +75,6 @@ public class Orchestrator extends WebSocketServer {
 
     @Override
     public void onClose(WebSocket webSocket, int i, String s, boolean b) {
-
     }
 
     @Override

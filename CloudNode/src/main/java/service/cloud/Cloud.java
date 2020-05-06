@@ -9,12 +9,17 @@ import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
 import oshi.hardware.HardwareAbstractionLayer;
-import service.host.*;
-import service.transfer.*;
 import service.core.*;
+import service.host.ServiceHost;
+import service.transfer.DockerController;
+import service.transfer.TransferClient;
+import service.transfer.TransferServer;
 
 import java.io.File;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.*;
 
 public class Cloud extends WebSocketClient {
@@ -29,26 +34,16 @@ public class Cloud extends WebSocketClient {
     DockerController dockerController;
     private Map<Integer, Double> historicalCPUload = new HashMap<>();
     private Map<Integer, Double> historicalRamload = new HashMap<>();
+    boolean secureMode;
 
-    public Cloud(URI serverUri, File service, URI serviceAddress) {
+    public Cloud(URI serverUri, File service, URI serviceAddress, Boolean secureMode) {
         super(serverUri);
         this.service = service;//service is stored in edge node
-        //this.proxyName = proxyName;
         dockerController = new DockerController();
         this.serviceAddress = serviceAddress;
-        System.out.println(serverUri + " space   " + service.getAbsolutePath());
+        this.secureMode = secureMode;
         getCPULoad();
         getRamLoad();
-    }
-
-    public static void main(String[] args) throws URISyntaxException {
-        //Cloud cloud = new Cloud(new URI("ws://localhost:443"), new File("D:\\code\\practical 5\\FYP\\CloudNode\\src\\main\\resources\\docker.tar"),444);
-        //cloud.run();
-    }
-
-    @Override
-    public void onOpen(ServerHandshake serverHandshake) {
-        System.out.println("connected");
     }
 
     @Override
@@ -66,9 +61,6 @@ public class Cloud extends WebSocketClient {
 
         Message messageObj = gson.fromJson(message, Message.class);
 
-        System.out.println(messageObj.getType());
-        System.out.println(message);
-
         //this routes inbound messages based on type and then moves them to other methods
         switch (messageObj.getType()) {
             //A request for the nodes status when it initially joins
@@ -83,14 +75,12 @@ public class Cloud extends WebSocketClient {
                 break;
             //request for the service on the node
             case Message.MessageTypes.SERVICE_REQUEST:
-                System.out.println("Time that Cloud gets the request from the Orchestrator "+ System.currentTimeMillis());
+                System.out.println("Time that Cloud gets the request from the Orchestrator " + System.currentTimeMillis());
                 ServiceRequest serviceRequest = (ServiceRequest) messageObj;
                 gson = new Gson();
-                InetSocketAddress serverAddress = launchTempServer();
+                launchTempServer();
                 ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serviceAddress.getHost() + ":" + serviceAddress.getPort());
-                System.out.println(serviceResponse.getServiceOwnerAddress());
                 String jsonStr = gson.toJson(serviceResponse);
-                System.out.println(jsonStr);
                 send(jsonStr);
                 break;
             case Message.MessageTypes.SERVICE_RESPONSE:
@@ -125,9 +115,13 @@ public class Cloud extends WebSocketClient {
     }
 
     public void launchTransferClient(String serverAddress) throws URISyntaxException, UnknownHostException {
-        System.out.println("GOT HERE");
-        System.out.println(serverAddress);
-        TransferClient transferClient = new TransferClient(new URI("ws://" + serverAddress), dockerController);
+        URI transferServerURI;
+        if (secureMode) {
+            transferServerURI = new URI("wss://" + serverAddress);
+        } else {
+            transferServerURI = new URI("ws://" + serverAddress);
+        }
+        TransferClient transferClient = new TransferClient(transferServerURI, dockerController);
         transferClient.connect();
         while (transferClient.dockerControllerReady() == null) {
         }
@@ -141,12 +135,12 @@ public class Cloud extends WebSocketClient {
     public void getCPULoad() {
         new Timer().schedule(
                 new TimerTask() {
-                    int secondcounter = 0;
+                    int secondCounter = 0;
 
                     @Override
                     public void run() {
-                        secondcounter++;
-                        historicalCPUload.put(secondcounter, processor.getSystemCpuLoadBetweenTicks() * 100);
+                        secondCounter++;
+                        historicalCPUload.put(secondCounter, processor.getSystemCpuLoadBetweenTicks() * 100);
                     }
                 }, 0, 1000);
     }
@@ -154,22 +148,19 @@ public class Cloud extends WebSocketClient {
     public void getRamLoad() {
         new Timer().schedule(
                 new TimerTask() {
-                    int secondcounter = 0;
+                    int secondCounter = 0;
 
                     @Override
                     public void run() {
-                        secondcounter++;
-                        historicalRamload.put(secondcounter, (double) ((memory.getAvailable() / memory.getTotal()) * 100));
+                        secondCounter++;
+                        historicalRamload.put(secondCounter, (double) ((memory.getAvailable() / memory.getTotal()) * 100));
                     }
                 }, 0, 1000);
     }
 
-
     public InetSocketAddress launchTempServer() {
         InetSocketAddress serverAddress = new InetSocketAddress(serviceAddress.getPort());
-        System.out.println(serverAddress.toString());
         setReuseAddr(true);
-        System.out.println("the transfer Server tried to run");
         TransferServer transferServer = new TransferServer(serverAddress, service);
         transferServer.start();
 
@@ -178,11 +169,14 @@ public class Cloud extends WebSocketClient {
 
     @Override
     public void onClose(int i, String s, boolean b) {
-
     }
 
     @Override
     public void onError(Exception e) {
 
+    }
+
+    @Override
+    public void onOpen(ServerHandshake serverHandshake) {
     }
 }

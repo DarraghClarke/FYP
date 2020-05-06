@@ -9,52 +9,49 @@ import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
 import java.security.KeyStore;
+
 //based on TooTallNate example https://github.com/TooTallNate/Java-WebSocket/blob/master/src/main/example/SSLClientExample.java
 public class SSLMain {
 
-    SSLMain(URI address,boolean flag,URI serviceAddress) throws Exception{
-        Edge node = new Edge(address,flag,serviceAddress);
+    SSLMain(URI address, boolean flag, URI serviceAddress) throws Exception {
+        Edge node = new Edge(address, flag, serviceAddress);
 
         // load up the key store
         String STORETYPE = "JKS";
         String STOREPASSWORD = "storepassword";
         String KEYPASSWORD = "keypassword";
 
-        KeyStore ks = KeyStore.getInstance( STORETYPE );
-        InputStream is =  this.getClass().getResourceAsStream("/keystore.jks");
+        KeyStore ks = KeyStore.getInstance(STORETYPE);
+        InputStream is = this.getClass().getResourceAsStream("/keystore.jks");
         System.out.println(is.toString());
-        ks.load( is, STOREPASSWORD.toCharArray() );
+        ks.load(is, STOREPASSWORD.toCharArray());
 
-        KeyManagerFactory kmf = KeyManagerFactory.getInstance( "SunX509" );
-        kmf.init( ks, KEYPASSWORD.toCharArray() );
-        TrustManagerFactory tmf = TrustManagerFactory.getInstance( "SunX509" );
-        tmf.init( ks );
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+        kmf.init(ks, KEYPASSWORD.toCharArray());
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
+        tmf.init(ks);
 
         SSLContext sslContext = null;
-        sslContext = SSLContext.getInstance( "TLS" );
-        sslContext.init( kmf.getKeyManagers(), tmf.getTrustManagers(), null );
+        sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
         SSLSocketFactory factory = sslContext.getSocketFactory();
 
-        node.setSocketFactory( factory );
+        node.setSocketFactory(factory);
 
         node.connectBlocking();
-        node.setProxy(new Proxy( Proxy.Type.HTTP, new InetSocketAddress( "proxyaddressedge", 80 )  ));
+        node.setProxy(new Proxy(Proxy.Type.HTTP, new InetSocketAddress("proxyaddressedge", 80)));
 
-        BufferedReader reader = new BufferedReader( new InputStreamReader( System.in ) );
-        while ( true ) {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        while (true) {
             String line = reader.readLine();
-            if( line.equals( "close" ) ) {
+            if (line.equals("close")) {
                 node.closeBlocking();
-            } else if ( line.equals( "open" ) ) {
+            } else if (line.equals("open")) {
                 node.reconnect();
             } else {
-                node.send( line );
+                node.send(line);
             }
         }
-    }
-
-    public static void main( String[] args ) throws Exception {
-        //SSLMain sslMain=new SSLMain(new URI( "ws://localhost:443" ), false,445);
     }
 }

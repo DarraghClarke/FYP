@@ -1,20 +1,18 @@
 package service.cloud;
+
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
+
 import java.io.File;
 import java.net.URI;
-import java.net.URISyntaxException;
 
-@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.1")
-public class cmMain implements Runnable{
+@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.6")
+public class cmMain implements Runnable {
 
-    @Option(names = { "-s", "--secure" },
+    @Option(names = {"-s", "--secure"},
             description = "Secure mode, only engages with orchestrator using SSL")
     private boolean secure;
-
-    //@Option(names = { "-r", "--request" }, paramLabel = "requestedService", description = "requestedService")
-    //File requestedService;
 
     @Parameters(index = "0", paramLabel = "address", description = "The address of the orchestrator format wss://{ip}:{port}")
     private URI address;
@@ -27,22 +25,19 @@ public class cmMain implements Runnable{
 
     @Override
     public void run() {
-        if(!secure) {
-            Cloud cloud = new Cloud(address, file,port);
+        if (!secure) {
+            Cloud cloud = new Cloud(address, file, port,secure);
             cloud.run();
-        }else{
+        } else {
             try {
-                new SSLMain(address,file,port);
+                new SSLMain(address, file, port,secure);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    public static void main(String[] args) throws URISyntaxException {
-        // By implementing Runnable or Callable, parsing, error handling and handling user
-        // requests for usage help or version help can be done with one line of code.
-
+    public static void main(String[] args) {
         int exitCode = new CommandLine(new cmMain()).execute(args);
         System.exit(exitCode);
     }

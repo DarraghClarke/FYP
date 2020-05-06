@@ -4,29 +4,24 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.io.File;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
-@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.1")
-public class cmMain implements Runnable{
+@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.7")
+public class cmMain implements Runnable {
 
-    @Option(names = { "-s", "--secure" },
+    @Option(names = {"-s", "--secure"},
             description = "Secure mode, only engages with orchestrators using SSL")
     private boolean secure;
-
-    //@Option(names = { "-r", "--request" }, paramLabel = "requestedService", description = "requestedService")
-    //File requestedService;
 
     @Parameters(index = "0", paramLabel = "port", description = "The port the orchestrator should run on")
     private int port;
 
-
+    @Option(names = {"--RollingAverage"}, paramLabel = "Rolling Average", description = "The value that should be used in the rolling average")
+    int archive;
 
     @Override
     public void run() {
-        if(!secure) {
+        if (!secure) {
             Orchestrator orchestrator = null;
             try {
                 orchestrator = new Orchestrator(port);
@@ -34,7 +29,7 @@ public class cmMain implements Runnable{
                 e.printStackTrace();
             }
             orchestrator.run();
-        }else{
+        } else {
             try {
                 new SSLMain(port);
             } catch (Exception e) {
@@ -44,10 +39,7 @@ public class cmMain implements Runnable{
         }
     }
 
-    public static void main(String[] args) throws URISyntaxException {
-        // By implementing Runnable or Callable, parsing, error handling and handling user
-        // requests for usage help or version help can be done with one line of code.
-
+    public static void main(String[] args) {
         int exitCode = new CommandLine(new cmMain()).execute(args);
         System.exit(exitCode);
     }
