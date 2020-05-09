@@ -82,7 +82,7 @@ public class Edge extends WebSocketClient {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serviceAddress.getHost() + ":" + serviceAddress.getPort());
+                ServiceResponse serviceResponse = new ServiceResponse(serviceRequest.getRequstorID(), assignedUUID, serviceAddress.getHost() + ":" + serviceAddress.getPort(),serviceRequest.getServiceName());
                 String jsonStr = gson.toJson(serviceResponse);
                 send(jsonStr);
                 break;
@@ -93,7 +93,9 @@ public class Edge extends WebSocketClient {
 
                 try {
                     launchTransferClient(response.getServiceOwnerAddress());
-
+                    MigrationSuccess migrationSuccess = new MigrationSuccess(assignedUUID,response.getServiceOwnerID(),response.getServiceName());
+                    jsonStr = gson.toJson(migrationSuccess);
+                    send(jsonStr);
                 } catch (URISyntaxException | UnknownHostException e) {
                     e.printStackTrace();
                 }

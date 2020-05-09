@@ -10,17 +10,19 @@ import java.util.UUID;
 public class ServiceResponse extends Message {
     private UUID requstorID;
     private UUID serviceOwnerID;
-    private String serviceOwnerProxy;//idk if this is how i wanna do it but maybe
+    private String serviceName;
+    private String serviceOwnerAddress;//idk if this is how i wanna do it but maybe
 
     public ServiceResponse(){
         super(Message.MessageTypes.SERVICE_RESPONSE);
     }
 
-    public ServiceResponse(UUID requstorID, UUID serviceOwnerID, String serviceOwnerProxy) {
+    public ServiceResponse(UUID requstorID, UUID serviceOwnerID, String serviceOwnerAddress,String serviceName) {
         super(Message.MessageTypes.SERVICE_RESPONSE);
         this.requstorID = requstorID;
         this.serviceOwnerID = serviceOwnerID;
-        this.serviceOwnerProxy = serviceOwnerProxy;
+        this.serviceOwnerAddress = serviceOwnerAddress;
+        this.serviceName = serviceName;
     }
 
     public UUID getRequstorID() {
@@ -32,6 +34,10 @@ public class ServiceResponse extends Message {
     }
 
     public String getServiceOwnerAddress() {
-        return serviceOwnerProxy;
+        return serviceOwnerAddress;
+    }
+
+    public String getServiceName() {
+        return serviceName;
     }
 }

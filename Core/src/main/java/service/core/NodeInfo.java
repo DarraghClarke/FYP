@@ -84,6 +84,10 @@ public class NodeInfo extends Message {
         this.serviceHostAddress = serviceHostAddress;
     }
 
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
+
     public void setCPUload(Map<Integer, Double> CPUload) {
         this.CPUload = CPUload;
     }

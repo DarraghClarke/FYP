@@ -75,7 +75,8 @@ public class Orchestrator extends WebSocketServer {
                 .registerSubtype(ServiceRequest.class, Message.MessageTypes.SERVICE_REQUEST)
                 .registerSubtype(ServiceResponse.class, Message.MessageTypes.SERVICE_RESPONSE)
                 .registerSubtype(HostRequest.class, Message.MessageTypes.HOST_REQUEST)
-                .registerSubtype(NodeInfoRequest.class, Message.MessageTypes.NODE_INFO_REQUEST);
+                .registerSubtype(NodeInfoRequest.class, Message.MessageTypes.NODE_INFO_REQUEST)
+                .registerSubtype(MigrationSuccess.class,Message.MessageTypes.MIGRATION_SUCESS);
 
         Gson gson = new GsonBuilder().setPrettyPrinting().registerTypeAdapterFactory(adapter).create();
         Message messageObj = gson.fromJson(message, Message.class);
@@ -101,6 +102,11 @@ public class Orchestrator extends WebSocketServer {
                 WebSocket returnSocket = connectedNodes.get(response.getRequstorID()).getWebSocket();
                 jsonStr = gson.toJson(response);
                 returnSocket.send(jsonStr);
+                break;
+            case Message.MessageTypes.MIGRATION_SUCESS:
+                MigrationSuccess successMessage = (MigrationSuccess) messageObj;
+                connectedNodes.get(successMessage.getHostId()).setServiceName(successMessage.getServiceName());
+                connectedNodes.get(successMessage.getOldHostId()).setServiceName("noService");
                 break;
             case Message.MessageTypes.HOST_REQUEST:
                 HostRequest hostRequest = (HostRequest) messageObj;

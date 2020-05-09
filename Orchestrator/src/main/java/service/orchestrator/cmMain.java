@@ -28,11 +28,7 @@ public class cmMain implements Runnable {
     public void run() {
         if (!secure) {
             Orchestrator orchestrator = null;
-            try {
-                orchestrator = new Orchestrator(port,rollingAverage);
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            }
+            orchestrator = new Orchestrator(port,rollingAverage);
             orchestrator.run();
         } else {
             try {
