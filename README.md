@@ -62,12 +62,17 @@ i.e java -jar cloud-0.6.0-jar-with-dependencies wss://193.145.123.56:443 C://pat
 ```
 
 ## Android Application
-The Android project that accompanies this implementation servers as simple controller to show how an android application can connect to the orchestrator,request a service, and then communicate with that service.
-This needs to be built from source, and has been developed and testing with android studio.
-Input the IP of the desired Orchestrator and the app will connect to it. After a succesful connection you can send strings and file to the docker image, depending on the docker image connected too it may handle these inputs in strange ways, so the android app isn't user proofed like the rest of the elements and simply serves as a template for any development of a dedicated app.
+The Android project that accompanies this implementation serves as simple controller to show how an android application can connect to the orchestrator,request a service, and then communicate with that service.
+This needs to be built from source, and has been developed and tested with android studio.
+To run:
+Select whether or not secure mode should be used, Input the IP of the desired Orchestrator and the app will connect to it. 
+After a successful connection you can send strings and file to the docker image, depending on the docker image connected too it may handle these inputs in strange ways, 
+so the android app isn't user proofed like the rest of the elements and simply serves as a template for any development of a dedicated app.
 
 ## Run instructions
-Deploy the orchestrator jar in it's desired mode, then deploy at least two nodes, any number or combinations of cloud and edge are fine based on your needs. Make sure that all ports selected aren't blocked by a systems firewall.
+Deploy the orchestrator jar in it's desired mode, then deploy at least two nodes, any number or combinations of cloud and edge are fine based on your needs. 
+Make sure that all ports selected aren't blocked by a systems firewall.
+Launch the android application and use it to connect to the orchestrator, this should trigger a migration to occur.
 
 
 
