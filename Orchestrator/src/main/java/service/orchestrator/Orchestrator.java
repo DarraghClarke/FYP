@@ -33,7 +33,7 @@ public class Orchestrator extends WebSocketServer {
      */
     @Override
     public void onOpen(WebSocket webSocket, ClientHandshake clientHandshake) {
-
+        System.out.println("new connection :" + webSocket.getRemoteSocketAddress());
         UUID UUIDToReturn = UUID.randomUUID();
         if (connectedNodes.isEmpty()) {
             firstid = UUIDToReturn;

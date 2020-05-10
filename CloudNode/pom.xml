@@ -5,7 +5,7 @@
 
     <groupId>clarke.fyp</groupId>
     <artifactId>cloud</artifactId>
-    <version>0.6.0</version>
+    <version>0.7.0</version>
 
     <dependencies>
         <dependency>
@@ -61,7 +61,7 @@
     </dependencies>
 
     <properties>
-        <main.class>service.cloud.cmMain</main.class>
+        <main.class>service.cloud.Main</main.class>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
@@ -79,7 +79,7 @@
             <configuration>
                 <archive>
                     <manifest>
-                        <mainClass>service.cloud.cmMain</mainClass>
+                        <mainClass>service.cloud.Main</mainClass>
                     </manifest>
                 </archive>
                 <descriptorRefs>
@@ -104,7 +104,7 @@
                 <archive>
                     <manifest>
                         <!-- Jar file entry point -->
-                        <mainClass>service.cloud.cmMain</mainClass>
+                        <mainClass>service.cloud.Main</mainClass>
                     </manifest>
                 </archive>
             </configuration>

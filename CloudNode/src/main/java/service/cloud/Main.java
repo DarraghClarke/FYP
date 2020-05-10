@@ -7,8 +7,8 @@ import picocli.CommandLine.Parameters;
 import java.io.File;
 import java.net.URI;
 
-@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.6")
-public class cmMain implements Runnable {
+@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.7")
+public class Main implements Runnable {
 
     @Option(names = {"-s", "--secure"},
             description = "Secure mode, only engages with orchestrator using SSL")
@@ -30,7 +30,7 @@ public class cmMain implements Runnable {
             cloud.run();
         } else {
             try {
-                new SSLMain(address, file, port,secure);
+                new SecureCloud(address, file, port,secure);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -38,7 +38,7 @@ public class cmMain implements Runnable {
     }
 
     public static void main(String[] args) {
-        int exitCode = new CommandLine(new cmMain()).execute(args);
+        int exitCode = new CommandLine(new Main()).execute(args);
         System.exit(exitCode);
     }
 }

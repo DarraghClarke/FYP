@@ -46,6 +46,11 @@ public class Edge extends WebSocketClient {
         System.out.println(Edge.this.getLocalSocketAddress());//this is the local address in theory
     }
 
+    /**
+     * When the websocket library receives any messages they are routed to this method
+     *
+     * @param message   the message received
+     */
     @Override
     public void onMessage(String message) {
         RuntimeTypeAdapterFactory<Message> adapter = RuntimeTypeAdapterFactory

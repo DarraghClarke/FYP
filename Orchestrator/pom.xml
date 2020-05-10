@@ -5,7 +5,7 @@
 
     <groupId>clarke.fyp</groupId>
     <artifactId>orchestrator</artifactId>
-    <version>0.7.0</version>
+    <version>0.8.0</version>
 
     <dependencies>
         <dependency>
@@ -41,7 +41,7 @@
     </dependencies>
 
     <properties>
-        <main.class>service.orchestrator.cmMain</main.class>
+        <main.class>service.orchestrator.Main</main.class>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
@@ -59,7 +59,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>service.orchestrator.cmMain</mainClass>
+                            <mainClass>service.orchestrator.Main</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -94,7 +94,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>service.orchestrator.cmMain</mainClass>
+                            <mainClass>service.orchestrator.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

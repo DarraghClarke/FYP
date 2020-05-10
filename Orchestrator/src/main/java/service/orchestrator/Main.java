@@ -4,10 +4,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
-import java.net.UnknownHostException;
-
-@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.7")
-public class cmMain implements Runnable {
+@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.8")
+public class Main implements Runnable {
 
     @Option(names = {"--RollingAverage"}, defaultValue = "80", paramLabel = "Rolling Average", description = "The value that should be used in the rolling average, format: input 80 for 80/20 rolling average, Defaults to 80")
     int rollingAverage;
@@ -20,7 +18,7 @@ public class cmMain implements Runnable {
     private int port;
 
     public static void main(String[] args) {
-        int exitCode = new CommandLine(new cmMain()).execute(args);
+        int exitCode = new CommandLine(new Main()).execute(args);
         System.exit(exitCode);
     }
 

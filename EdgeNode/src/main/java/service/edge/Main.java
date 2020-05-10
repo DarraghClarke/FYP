@@ -4,10 +4,9 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import java.io.File;
 import java.net.URI;
-import java.net.URISyntaxException;
 
-@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.6")
-public class cmMain implements Runnable{
+@CommandLine.Command(name = "cmMain", mixinStandardHelpOptions = true, version = "0.7")
+public class Main implements Runnable{
 
     @Option(names = { "-b", "--badagent" },
             description = "flags node as untrustworthy")
@@ -33,7 +32,7 @@ public class cmMain implements Runnable{
             edge.run();
         }else{
             try {
-                new SSLMain(address,badAgent,port,secure);
+                new SecureEdge(address,badAgent,port,secure);
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -42,7 +41,7 @@ public class cmMain implements Runnable{
     }
 
     public static void main(String[] args) {
-        int exitCode = new CommandLine(new cmMain()).execute(args);
+        int exitCode = new CommandLine(new Main()).execute(args);
         System.exit(exitCode);
     }
 }

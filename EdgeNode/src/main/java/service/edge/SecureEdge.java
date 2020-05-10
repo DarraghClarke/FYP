@@ -1,20 +1,19 @@
-package service.cloud;
+package service.edge;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
 import java.security.KeyStore;
 
-public class SSLMain {
-    SSLMain(URI address, File serviceToRun, URI serviceAddress,Boolean secure) throws Exception {
+public class SecureEdge {
 
-        Cloud node = new Cloud(address, serviceToRun, serviceAddress,secure);
+    SecureEdge(URI address, boolean flag, URI serviceAddress, boolean secure) throws Exception {
+        Edge node = new Edge(address, flag, serviceAddress,secure);
 
         // load up the key store
         String STORETYPE = "JKS";
@@ -23,6 +22,7 @@ public class SSLMain {
 
         KeyStore ks = KeyStore.getInstance(STORETYPE);
         InputStream is = this.getClass().getResourceAsStream("/keystore.jks");
+        System.out.println(is.toString());
         ks.load(is, STOREPASSWORD.toCharArray());
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
@@ -30,7 +30,8 @@ public class SSLMain {
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
         tmf.init(ks);
 
-        SSLContext sslContext = SSLContext.getInstance("TLS");
+        SSLContext sslContext = null;
+        sslContext = SSLContext.getInstance("TLS");
         sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
 
         SSLSocketFactory factory = sslContext.getSocketFactory();
@@ -38,6 +39,7 @@ public class SSLMain {
         node.setSocketFactory(factory);
 
         node.connectBlocking();
+
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
             String line = reader.readLine();

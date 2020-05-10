@@ -42,6 +42,11 @@ public class Cloud extends WebSocketClient {
         getSystemLoad();
     }
 
+    /**
+     * When the websocket library receives any messages they are routed to this method
+     *
+     * @param message   the message received
+     */
     @Override
     public void onMessage(String message) {
         RuntimeTypeAdapterFactory<Message> adapter = RuntimeTypeAdapterFactory
@@ -200,5 +205,7 @@ public class Cloud extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
+        System.out.println("connected to orchestrator");
+        System.out.println(Cloud.this.getLocalSocketAddress());//this is the local address in theory
     }
 }
